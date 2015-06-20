@@ -1,0 +1,9 @@
+[package]
+name = "gist"
+version = "0.1.0"
+authors = ["Arnaud Berthomier <oz@cyprio.net>"]
+
+[dependencies]
+getopts = "0.2"
+hyper = "0.5"
+rustc-serialize = "0.3.15"
