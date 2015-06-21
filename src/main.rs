@@ -73,20 +73,20 @@ fn gists_to_json(gists : Gists) -> Json {
 
 fn send_gists(gists : Gists) {
     let mut client = Client::new();
-
     let mut auth = Headers::new();
-    let key : String = env::var(&GITHUB_TOKEN.to_string()).unwrap();
-    auth.set(OAuthToken(format!("token {}", key)));
+    let token : String = env::var(&GITHUB_TOKEN.to_string()).unwrap();
+    auth.set(OAuthToken(format!("token {}", token)));
 
     let json = gists_to_json(gists).to_string();
     let res = client.post(&GIST_API.to_string())
         .header(ContentType::json())
         .headers(auth)
         .body(json.as_bytes())
-        .send()
-        .unwrap();
-    println!("{:?}", res);
-    assert_eq!(res.status, hyper::status::StatusCode::Created);
+        .send();
+    match res {
+        Ok(value)  => { println!("{:?}", value) }
+        Err(value) => { panic!(value.to_string()) }
+    }
 }
 
 fn print_usage(program: &str, opts: Options) {
