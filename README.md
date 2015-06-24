@@ -1,6 +1,8 @@
 # Gist
 
-> Command line tool for publishing gists
+A command-line tool for publishing gists, inspired by [icholy/gist][gogist].
+
+[gogist]: https://github.com/icholy/gist
 
 ## Usage:
 
