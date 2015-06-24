@@ -3,21 +3,22 @@ extern crate rustc_serialize;
 #[macro_use] extern crate hyper;
 
 use getopts::Options;
+use hyper::{Client, header, error};
+use hyper::header::{Authorization, Bearer};
+use rustc_serialize::json;
 use rustc_serialize::json::{ToJson, Json};
-use std::collections::BTreeMap;
-use hyper::Client;
-use hyper::header::Headers;
-use hyper::header::ContentType;
-header! { (OAuthToken, "Authorization") => [String] }
 
 use std::env;
 use std::process;
 use std::io::Read;
 use std::path::Path;
 use std::fs::File;
+use std::collections::BTreeMap;
 
-const GIST_API: &'static str = "https://api.github.com/gists";
-const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
+const GIST_API:          &'static str = "https://api.github.com/gists";
+const GITHUB_TOKEN:      &'static str = "GITHUB_TOKEN";
+const USER_AGENT:        &'static str = "Pepito Gist";
+const DEFAULT_GIST_NAME: &'static str = "Untitled";
 
 struct Gist {
     filename: String,
@@ -25,6 +26,11 @@ struct Gist {
     contents: String,
 }
 type Gists = Vec<Gist>;
+
+#[derive(RustcDecodable)]
+struct GistResponse {
+    html_url: String,
+}
 
 impl Gist {
     fn new(filename: String, public: bool) -> Gist {
@@ -71,22 +77,21 @@ fn gists_to_json(gists : Gists) -> Json {
     Json::Object(root)
 }
 
-fn send_gists(gists : Gists) {
-    let mut client = Client::new();
-    let mut auth = Headers::new();
+fn create_gists(gists : Gists) -> Result<String, error::Error> {
+    let client = Client::new();
     let token : String = env::var(&GITHUB_TOKEN.to_string()).unwrap();
-    auth.set(OAuthToken(format!("token {}", token)));
 
-    let json = gists_to_json(gists).to_string();
-    let res = client.post(&GIST_API.to_string())
-        .header(ContentType::json())
-        .headers(auth)
-        .body(json.as_bytes())
-        .send();
-    match res {
-        Ok(value)  => { println!("{:?}", value) }
-        Err(value) => { panic!(value.to_string()) }
-    }
+    let json_body = gists_to_json(gists).to_string();
+    let mut res = try!(client.post(&GIST_API.to_string())
+        .header(header::Authorization(Bearer { token: token.to_owned() }))
+        .header(header::UserAgent(USER_AGENT.to_owned()))
+        .header(header::ContentType::json())
+        .body(json_body.as_bytes())
+        .send());
+
+    let mut body = String::new();
+    try!(res.read_to_string(&mut body));
+    Ok(body)
 }
 
 fn print_usage(program: &str, opts: Options) {
@@ -96,13 +101,13 @@ fn print_usage(program: &str, opts: Options) {
 
 fn parse_args(args : Vec<String>) -> getopts::Matches {
     let mut opts = Options::new();
-
     opts.optopt("f", "file", "set file name", "NAME");
     opts.optflag("p", "public", "make public");
     opts.optflag("h", "help", "print this help menu");
+
     let params = match opts.parse(&args[1..]) {
-        Ok(m)  => { m }
-        Err(f) => { panic!(f.to_string()) }
+        Ok(m)  => m,
+        Err(f) => panic!(f.to_string())
     };
     if params.opt_present("h") {
         print_usage(&args[0].clone(), opts);
@@ -116,8 +121,8 @@ fn main() {
     let params = parse_args(env::args().collect());
     let public = params.opt_present("p");
     let opt_name = match params.opt_str("f") {
-        Some(name) => { name }
-        None       => { "Untitled".to_string() }
+        Some(name) => name,
+        None       => DEFAULT_GIST_NAME.to_string(),
     };
     let mut gists: Gists = vec![];
 
@@ -133,5 +138,10 @@ fn main() {
         gist.read_stdin().unwrap();
         gists.push(gist);
     }
-    send_gists(gists);
+
+    let res = create_gists(gists);
+    if res.is_ok() {
+        let gist: GistResponse = json::decode(&res.unwrap()).unwrap();
+        println!("{}", gist.html_url);
+    }
 }
