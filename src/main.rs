@@ -10,7 +10,7 @@ use rustc_serialize::json::{ToJson, Json};
 
 use std::env;
 use std::process;
-use std::io::Read;
+use std::io::{self, Read};
 use std::path::Path;
 use std::fs::File;
 use std::collections::BTreeMap;
@@ -22,36 +22,65 @@ const DEFAULT_GIST_NAME: &'static str = "Untitled";
 
 struct Gist {
     filename: String,
-    private:  bool,
     contents: String,
 }
-type Gists = Vec<Gist>;
 
-#[derive(RustcDecodable)]
-struct GistResponse {
-    html_url: String,
+struct Gists {
+    public: bool,
+    files:  Vec<Gist>,
+}
+
+impl Gists {
+    fn new(public: bool) -> Gists {
+        Gists {
+            public: public,
+            files:  vec![],
+        }
+    }
+
+    // Add a file.
+    fn push(&mut self, gist : Gist) {
+        self.files.push(gist);
+    }
+
+    // Sent to Github.
+    fn create(&mut self) -> Result<String, error::Error> {
+        let client = Client::new();
+        let token : String = env::var(&GITHUB_TOKEN.to_string()).unwrap();
+        let json_body = self.to_json().to_string();
+        let mut res = try!(client.post(&GIST_API.to_string())
+            .header(header::Authorization(Bearer { token: token.to_owned() }))
+            .header(header::UserAgent(USER_AGENT.to_owned()))
+            .header(header::ContentType::json())
+            .body(json_body.as_bytes())
+            .send());
+
+        let mut body = String::new();
+        try!(res.read_to_string(&mut body));
+        Ok(body)
+    }
 }
 
 impl Gist {
-    fn new(filename: String, public: bool) -> Gist {
+    fn new(filename: String) -> Gist {
         Gist {
-            private:  !public,
             filename: filename,
             contents: String::new(),
         }
     }
 
     // Read standard input to contents buffer.
-    fn read_stdin(&mut self) -> std::io::Result<usize> {
-        std::io::stdin().read_to_string(&mut self.contents)
+    fn read_stdin(&mut self) -> Result<&Gist, io::Error> {
+        try!(io::stdin().read_to_string(&mut self.contents));
+        Ok(self)
     }
 
     // Read file to contents buffer.
-    fn read_file(&mut self) -> std::io::Result<usize> {
+    fn read_file(&mut self) -> Result<&Gist, io::Error> {
         let path = Path::new(&self.filename);
-        let mut fh = File::open(&path).unwrap();
-
-        fh.read_to_string(&mut self.contents)
+        let mut fh = try!(File::open(&path));
+        try!(fh.read_to_string(&mut self.contents));
+        Ok(self)
     }
 }
 
@@ -63,35 +92,23 @@ impl ToJson for Gist {
     }
 }
 
-// Convert a Gist vector to JSON, suitable for Github's Gist API.
-fn gists_to_json(gists : Gists) -> Json {
-    let mut root  = BTreeMap::new();
-    let mut files = BTreeMap::new();
+impl ToJson for Gists {
+    fn to_json(&self) -> Json {
+        let mut root  = BTreeMap::new();
+        let mut files = BTreeMap::new();
 
-    root.insert("public".to_string(), (!gists[0].private).to_json());
-    for g in gists {
-        files.insert(g.filename.clone(), g);
+        root.insert("public".to_string(), self.public.to_json());
+        for g in self.files.iter() {
+            files.insert(g.filename.clone(), g.to_json());
+        }
+        root.insert("files".to_string(), files.to_json());
+        Json::Object(root)
     }
-    root.insert("files".to_string(), files.to_json());
-
-    Json::Object(root)
 }
 
-fn create_gists(gists : Gists) -> Result<String, error::Error> {
-    let client = Client::new();
-    let token : String = env::var(&GITHUB_TOKEN.to_string()).unwrap();
-
-    let json_body = gists_to_json(gists).to_string();
-    let mut res = try!(client.post(&GIST_API.to_string())
-        .header(header::Authorization(Bearer { token: token.to_owned() }))
-        .header(header::UserAgent(USER_AGENT.to_owned()))
-        .header(header::ContentType::json())
-        .body(json_body.as_bytes())
-        .send());
-
-    let mut body = String::new();
-    try!(res.read_to_string(&mut body));
-    Ok(body)
+#[derive(RustcDecodable)]
+struct GistResponse {
+    html_url: String,
 }
 
 fn print_usage(program: &str, opts: Options) {
@@ -120,28 +137,31 @@ fn parse_args(args : Vec<String>) -> getopts::Matches {
 fn main() {
     let params = parse_args(env::args().collect());
     let public = params.opt_present("p");
-    let opt_name = match params.opt_str("f") {
+    let filename = match params.opt_str("f") {
         Some(name) => name,
         None       => DEFAULT_GIST_NAME.to_string(),
     };
-    let mut gists: Gists = vec![];
+    let mut gists = Gists::new(public);
 
     // If we receive filenames, read them, else use STDIN.
     if !params.free.is_empty() {
         for file_param in params.free {
-            let mut g = Gist::new(file_param, public);
-            g.read_file().unwrap();
+            let mut g = Gist::new(file_param);
+            g.read_file().ok().expect("Cannot read file");
             gists.push(g);
         }
     } else {
-        let mut gist = Gist::new(opt_name, public);
-        gist.read_stdin().unwrap();
-        gists.push(gist);
+        let mut g = Gist::new(filename);
+        if g.read_stdin().is_ok() { gists.push(g); }
     }
 
-    let res = create_gists(gists);
-    if res.is_ok() {
-        let gist: GistResponse = json::decode(&res.unwrap()).unwrap();
-        println!("{}", gist.html_url);
+    if !gists.files.is_empty() {
+        match gists.create() {
+            Ok(r) => {
+                let gist: GistResponse = json::decode(&r).unwrap();
+                println!("{}", gist.html_url);
+            },
+            Err(e) => panic!("{}", e)
+        }
     }
 }
