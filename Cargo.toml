@@ -1,7 +1,7 @@
 [package]
 name = "gist"
 version = "0.1.0"
-authors = ["Arnaud Berthomier <oz@cyprio.net>"]
+authors = ["Arnaud Berthomier <oz@lespepitos.org>"]
 
 [dependencies]
 getopts = "0.2"

@@ -23,7 +23,7 @@ gist *.rs
 ## Install:
 
 ``` sh
-$ git clone https://github.com/oz/gist.git
+$ git clone https://github.com/lespepitos/gist.git
 $ cd gist
 $ cargo build --release
 $ ./target/release/gist
