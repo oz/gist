@@ -1,11 +1,9 @@
 [package]
 name = "gist"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Arnaud Berthomier <oz@lespepitos.org>"]
 
 [dependencies]
 getopts = "0.2"
 rustc-serialize = "0.3.15"
-
-[dependencies.hyper]
-git = "https://github.com/hyperium/hyper.git"
+hyper = "0.6.1"
