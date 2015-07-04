@@ -1,6 +1,6 @@
 [package]
 name = "gist"
-version = "0.1.1"
+version = "0.2"
 authors = ["Arnaud Berthomier <oz@lespepitos.org>"]
 
 [dependencies]

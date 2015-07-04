@@ -7,7 +7,8 @@ use rustc_serialize::json;
 use std::env;
 use std::process;
 
-mod gists;
+mod gist;
+use gist::{Gist, GistFile};
 
 const DEFAULT_GIST_NAME: &'static str = "Untitled";
 
@@ -26,7 +27,7 @@ fn parse_args(args : Vec<String>) -> getopts::Matches {
     opts.optopt("f", "file", "set file name", "NAME");
     opts.optflag("p", "public", "make public");
     opts.optflag("a", "anonymous", "make anonymous");
-    opts.optflag("h", "help", "print this help menu");
+    opts.optflag("h", "help", "print this");
 
     let params = match opts.parse(&args[1..]) {
         Ok(m)  => m,
@@ -48,27 +49,27 @@ fn main() {
         Some(name) => name,
         None       => DEFAULT_GIST_NAME.to_string(),
     };
-    let mut gists = gists::Gists::new(public, anonymous);
+    let mut gist = Gist::new(public, anonymous);
 
     // If we receive filenames, read them, else use STDIN.
     if !params.free.is_empty() {
         for file_param in params.free {
-            let mut g = gists::GistFile::new(file_param);
+            let mut g = GistFile::new(file_param);
             g.read_file().ok().expect("Cannot read file");
-            gists.push(g);
+            gist.add_file(g);
         }
     } else {
-        let mut g = gists::GistFile::new(filename);
-        if g.read_stdin().is_ok() { gists.push(g); }
+        let mut g = GistFile::new(filename);
+        if g.read_stdin().is_ok() { gist.add_file(g); }
     }
 
-    if !gists.is_empty() {
-        match gists.create() {
+    if !gist.is_empty() {
+        match gist.create() {
             Ok(r) => {
                 let gist: GistResponse = json::decode(&r).unwrap();
                 println!("{}", gist.html_url);
             },
-            Err(e) => panic!("{}", e)
+            Err(e) => println!("{}", e)
         }
     }
 }
