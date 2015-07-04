@@ -1,8 +1,8 @@
 extern crate rustc_serialize;
 extern crate hyper;
 
-use self::hyper::{Client, header, error};
-use self::hyper::header::{Authorization, Bearer};
+use self::hyper::{Client, error};
+use self::hyper::header::{Authorization, Bearer, UserAgent, ContentType};
 use rustc_serialize::json::{ToJson, Json};
 
 use std::collections::BTreeMap;
@@ -10,26 +10,38 @@ use std::env;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
+use std::process;
 
+const E_NO_TOKEN: i32                 = 2;
 const GIST_API:          &'static str = "https://api.github.com/gists";
 const GITHUB_TOKEN:      &'static str = "GITHUB_TOKEN";
 const USER_AGENT:        &'static str = "Pepito Gist";
 
-pub struct Gist {
+pub struct GistFile {
     filename: String,
     contents: String,
 }
 
 pub struct Gists {
-    public: bool,
-    files:  Vec<Gist>,
+    anonymous: bool,
+    public:    bool,
+    files:     Vec<GistFile>,
+    token:     String,
 }
 
 impl Gists {
-    pub fn new(public: bool) -> Gists {
+    pub fn new(public: bool, anonymous: bool) -> Gists {
+        let token = env::var(&GITHUB_TOKEN.to_string());
+        if token.is_err() && !anonymous {
+            println!("Please, set a GITHUB_TOKEN.");
+            process::exit(E_NO_TOKEN);
+        }
+
         Gists {
-            public: public,
-            files:  vec![],
+            token:     token.unwrap_or("".to_string()),
+            anonymous: anonymous,
+            public:    public,
+            files:     vec![],
         }
     }
 
@@ -38,44 +50,47 @@ impl Gists {
     }
 
     // Add a file.
-    pub fn push(&mut self, gist : Gist) {
+    pub fn push(&mut self, gist : GistFile) {
         self.files.push(gist);
     }
 
     // Sent to Github.
     pub fn create(&mut self) -> Result<String, error::Error> {
-        let client = Client::new();
-        let token : String = env::var(&GITHUB_TOKEN.to_string()).unwrap();
+        let client    = Client::new();
         let json_body = self.to_json().to_string();
-        let mut res = try!(client.post(&GIST_API.to_string())
-            .header(header::Authorization(Bearer { token: token.to_owned() }))
-            .header(header::UserAgent(USER_AGENT.to_owned()))
-            .header(header::ContentType::json())
-            .body(json_body.as_bytes())
-            .send());
+        let uri       = &GIST_API.to_string();
 
+        let mut req = client.post(uri);
+        if !self.anonymous {
+            req = req.header(Authorization(Bearer { token: self.token.to_owned() }))
+        }
+
+        let mut res = try!(req.header(UserAgent(USER_AGENT.to_owned()))
+                              .header(ContentType::json())
+                              .body(json_body.as_bytes())
+                              .send());
         let mut body = String::new();
         try!(res.read_to_string(&mut body));
         Ok(body)
     }
 }
 
-impl Gist {
-    pub fn new(filename: String) -> Gist {
-        Gist {
+impl GistFile {
+    pub fn new(filename: String) -> GistFile {
+        GistFile {
             filename: filename,
             contents: String::new(),
         }
     }
 
     // Read standard input to contents buffer.
-    pub fn read_stdin(&mut self) -> Result<&Gist, io::Error> {
+    pub fn read_stdin(&mut self) -> Result<&GistFile, io::Error> {
         try!(io::stdin().read_to_string(&mut self.contents));
         Ok(self)
     }
 
     // Read file to contents buffer.
-    pub fn read_file(&mut self) -> Result<&Gist, io::Error> {
+    pub fn read_file(&mut self) -> Result<&GistFile, io::Error> {
         let path = Path::new(&self.filename);
         let mut fh = try!(File::open(&path));
         try!(fh.read_to_string(&mut self.contents));
@@ -83,7 +98,7 @@ impl Gist {
     }
 }
 
-impl ToJson for Gist {
+impl ToJson for GistFile {
     fn to_json(&self) -> Json {
         let mut root = BTreeMap::new();
         root.insert("content".to_string(), self.contents.to_json());
@@ -104,4 +119,3 @@ impl ToJson for Gists {
         Json::Object(root)
     }
 }
-

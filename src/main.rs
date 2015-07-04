@@ -25,6 +25,7 @@ fn parse_args(args : Vec<String>) -> getopts::Matches {
     let mut opts = Options::new();
     opts.optopt("f", "file", "set file name", "NAME");
     opts.optflag("p", "public", "make public");
+    opts.optflag("a", "anonymous", "make anonymous");
     opts.optflag("h", "help", "print this help menu");
 
     let params = match opts.parse(&args[1..]) {
@@ -42,21 +43,22 @@ fn parse_args(args : Vec<String>) -> getopts::Matches {
 fn main() {
     let params = parse_args(env::args().collect());
     let public = params.opt_present("p");
+    let anonymous = params.opt_present("a");
     let filename = match params.opt_str("f") {
         Some(name) => name,
         None       => DEFAULT_GIST_NAME.to_string(),
     };
-    let mut gists = gists::Gists::new(public);
+    let mut gists = gists::Gists::new(public, anonymous);
 
     // If we receive filenames, read them, else use STDIN.
     if !params.free.is_empty() {
         for file_param in params.free {
-            let mut g = gists::Gist::new(file_param);
+            let mut g = gists::GistFile::new(file_param);
             g.read_file().ok().expect("Cannot read file");
             gists.push(g);
         }
     } else {
-        let mut g = gists::Gist::new(filename);
+        let mut g = gists::GistFile::new(filename);
         if g.read_stdin().is_ok() { gists.push(g); }
     }
 
