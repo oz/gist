@@ -6,18 +6,38 @@ A command-line tool for publishing gists, inspired by [icholy/gist][gogist].
 
 ## Usage:
 
-``` sh
-# read from stdin
-cat file.sh | gist
+Read a file from stdin:
 
-# set file name
-cat file.sh | gist -f "myfile.sh"
+```sh
+cat notes.md | gist
+```
 
-# make public
+Set a file name:
+
+```sh
+cat error.log | gist -f "weird-bug.log"
+```
+
+Make a public Gist:
+
+```sh
 cat file.sh | gist -p
+```
 
-# multiple files
-gist *.rs
+Multiple files?
+
+```sh
+gist src/*.rs
+```
+
+I want the Gist's URL copied to my clipboard, when it's done:
+
+```sh
+# *nix / X.org
+echo stuff | gist | xclip
+
+# mac
+echo something | gist | pbcopy
 ```
 
 ## Install:
@@ -29,9 +49,13 @@ $ cargo build --release
 $ ./target/release/gist
 ```
 
-For auth, the tool looks for an environment variable called `GITHUB_TOKEN`
+For authentication, the program looks for an environment variable called
+`GITHUB_TOKEN`: it is mandatory to create "secret" gist (the default).
+
 You can generate one at: https://github.com/settings/tokens
 
-``` sh
+Then append it to your `.profile`, or something with:
+
+```sh
 export GITHUB_TOKEN="blah blah blah"
 ```
