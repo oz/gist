@@ -1,18 +1,19 @@
 extern crate rustc_serialize;
 extern crate hyper;
 
-use self::hyper::{Client, error};
-use self::hyper::header::{Authorization, Bearer, UserAgent, ContentType};
 use rustc_serialize::json::{ToJson, Json};
+use self::hyper::Client as HyperClient;
+use self::hyper::header::{Authorization, Bearer, UserAgent, ContentType};
+use self::hyper::status::StatusCode;
 
 use std::collections::BTreeMap;
 use std::env;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
-use std::process;
 
-const E_NO_TOKEN: i32                 = 2;
+use error::Error;
+
 const GIST_API:          &'static str = "https://api.github.com/gists";
 const GITHUB_TOKEN:      &'static str = "GITHUB_TOKEN";
 const USER_AGENT:        &'static str = "Pepito Gist";
@@ -33,8 +34,7 @@ impl Gist {
     pub fn new(public: bool, anonymous: bool) -> Gist {
         let token = env::var(&GITHUB_TOKEN.to_string());
         if token.is_err() && !anonymous {
-            println!("Please, set a GITHUB_TOKEN.");
-            process::exit(E_NO_TOKEN);
+            panic!("Missing GITHUB_TOKEN environment variable.");
         }
 
         Gist {
@@ -55,8 +55,8 @@ impl Gist {
     }
 
     // Sent to Github.
-    pub fn create(&mut self) -> Result<String, error::Error> {
-        let client    = Client::new();
+    pub fn create(&mut self) -> Result<String, Error> {
+        let client    = HyperClient::new();
         let json_body = self.to_json().to_string();
         let uri       = &GIST_API.to_string();
 
@@ -69,9 +69,12 @@ impl Gist {
                               .header(ContentType::json())
                               .body(json_body.as_bytes())
                               .send());
-        let mut body = String::new();
-        try!(res.read_to_string(&mut body));
-        Ok(body)
+        if res.status == StatusCode::Created {
+            let mut body = String::new();
+            try!(res.read_to_string(&mut body));
+            return Ok(body);
+        }
+        Err(Error::ApiError)
     }
 }
 
@@ -84,17 +87,17 @@ impl GistFile {
     }
 
     // Read standard input to contents buffer.
-    pub fn read_stdin(&mut self) -> Result<&GistFile, io::Error> {
+    pub fn read_stdin(&mut self) -> Result<(), Error> {
         try!(io::stdin().read_to_string(&mut self.contents));
-        Ok(self)
+        Ok(())
     }
 
     // Read file to contents buffer.
-    pub fn read_file(&mut self) -> Result<&GistFile, io::Error> {
+    pub fn read_file(&mut self) -> Result<(), Error> {
         let path = Path::new(&self.name);
         let mut fh = try!(File::open(&path));
         try!(fh.read_to_string(&mut self.contents));
-        Ok(self)
+        Ok(())
     }
 }
 

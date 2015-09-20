@@ -6,11 +6,17 @@ use rustc_serialize::json;
 
 use std::env;
 use std::process;
+use std::io::{self, Write};
+
+mod error;
+use error::Error;
 
 mod gist;
 use gist::{Gist, GistFile};
 
 const DEFAULT_GIST_NAME: &'static str = "Untitled";
+const E_HELP: i32  = 1;
+const E_FATAL: i32 = 2;
 
 #[derive(RustcDecodable)]
 struct GistResponse {
@@ -20,6 +26,12 @@ struct GistResponse {
 fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} [options]", program);
     print!("{}", opts.usage(&brief));
+    process::exit(E_HELP);
+}
+
+fn fatal(err: error::Error) {
+    io::stderr().write(format!("Error: {}", err).as_bytes()).ok();
+    process::exit(E_FATAL);
 }
 
 fn parse_args(args : Vec<String>) -> getopts::Matches {
@@ -35,7 +47,6 @@ fn parse_args(args : Vec<String>) -> getopts::Matches {
     };
     if params.opt_present("h") {
         print_usage(&args[0].clone(), opts);
-        process::exit(1);
     }
 
     params
@@ -43,24 +54,26 @@ fn parse_args(args : Vec<String>) -> getopts::Matches {
 
 fn main() {
     let params = parse_args(env::args().collect());
-    let public = params.opt_present("p");
-    let anonymous = params.opt_present("a");
+    let is_public = params.opt_present("p");
+    let is_anonymous = params.opt_present("a");
     let filename = match params.opt_str("f") {
         Some(name) => name,
         None       => DEFAULT_GIST_NAME.to_string(),
     };
-    let mut gist = Gist::new(public, anonymous);
+    let mut gist = Gist::new(is_public, is_anonymous);
 
-    // If we receive filenames, read them, else use STDIN.
-    if !params.free.is_empty() {
-        for file_param in params.free {
-            let mut g = GistFile::new(file_param);
-            g.read_file().ok().expect("Cannot read file");
-            gist.add_file(g);
-        }
-    } else {
+    // Read from stdin, unless we receive a bunch of filenames.
+    if params.free.is_empty() {
         let mut g = GistFile::new(filename);
         if g.read_stdin().is_ok() { gist.add_file(g); }
+    } else {
+        for file_param in params.free {
+            let mut g = GistFile::new(file_param);
+            match g.read_file() {
+                Ok(_)  => gist.add_file(g),
+                Err(e) => fatal(e)
+            }
+        }
     }
 
     if !gist.is_empty() {
@@ -69,7 +82,7 @@ fn main() {
                 let gist: GistResponse = json::decode(&r).unwrap();
                 println!("{}", gist.html_url);
             },
-            Err(e) => println!("{}", e)
+            Err(e) => fatal(e)
         }
     }
 }
