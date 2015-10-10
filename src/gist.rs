@@ -116,7 +116,10 @@ impl ToJson for Gist {
 
         root.insert("public".to_string(), self.public.to_json());
         for g in self.files.iter() {
-            files.insert(g.name.clone(), g.to_json());
+            // Remove directories from file path on serialization.
+            let v: Vec<&str> = g.name.split('/').collect();
+            let name: String = v.last().unwrap().to_string();
+            files.insert(name, g.to_json());
         }
         root.insert("files".to_string(), files.to_json());
         Json::Object(root)
