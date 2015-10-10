@@ -14,6 +14,8 @@ use error::Error;
 mod gist;
 use gist::{Gist, GistFile};
 
+pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 const DEFAULT_GIST_NAME: &'static str = "Untitled";
 const E_HELP: i32  = 1;
 const E_FATAL: i32 = 2;
@@ -29,6 +31,11 @@ fn print_usage(program: &str, opts: Options) {
     process::exit(E_HELP);
 }
 
+fn print_version(program: &str) {
+    println!("{} {}", program, VERSION);
+    process::exit(E_HELP);
+}
+
 fn fatal(err: error::Error) {
     io::stderr().write(format!("Error: {}", err).as_bytes()).ok();
     process::exit(E_FATAL);
@@ -40,10 +47,14 @@ fn parse_args(args : Vec<String>) -> getopts::Matches {
     opts.optflag("p", "public", "make public");
     opts.optflag("a", "anonymous", "make anonymous");
     opts.optflag("h", "help", "print this");
+    opts.optflag("v", "version", "show version");
 
     let params = opts.parse(&args[1..]).ok().expect("Unknown flag.");
     if params.opt_present("h") {
         print_usage(&args[0].clone(), opts);
+    }
+    if params.opt_present("v") {
+        print_version(&args[0].clone());
     }
 
     params
