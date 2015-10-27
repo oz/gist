@@ -50,7 +50,7 @@ $ ./target/release/gist
 ```
 
 For authentication, the program looks for an environment variable called
-`GITHUB_TOKEN`: it is mandatory to create "secret" gist (the default).
+`GITHUB_TOKEN`: it is mandatory to create a "secret" gist (the default).
 
 You can generate one at: https://github.com/settings/tokens
 
