@@ -17,7 +17,7 @@ use gist::{Gist, GistFile};
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 const DEFAULT_GIST_NAME: &'static str = "Untitled";
-const E_HELP: i32  = 1;
+const E_HELP: i32 = 1;
 const E_FATAL: i32 = 2;
 
 #[derive(RustcDecodable)]
@@ -41,7 +41,7 @@ fn fatal(err: error::Error) {
     process::exit(E_FATAL);
 }
 
-fn parse_args(args : Vec<String>) -> getopts::Matches {
+fn parse_args(args: Vec<String>) -> getopts::Matches {
     let mut opts = Options::new();
     opts.optopt("f", "file", "set file name", "NAME");
     opts.optflag("p", "public", "make public");
@@ -66,20 +66,22 @@ fn main() {
     let is_anonymous = params.opt_present("a");
     let filename = match params.opt_str("f") {
         Some(name) => name,
-        None       => DEFAULT_GIST_NAME.to_string(),
+        None => DEFAULT_GIST_NAME.to_string(),
     };
     let mut gist = Gist::new(is_public, is_anonymous);
 
     // Read from stdin, unless we receive a bunch of filenames.
     if params.free.is_empty() {
         let mut g = GistFile::new(filename);
-        if g.read_stdin().is_ok() { gist.add_file(g); }
+        if g.read_stdin().is_ok() {
+            gist.add_file(g);
+        }
     } else {
         for file_param in params.free {
             let mut g = GistFile::new(file_param);
             match g.read_file() {
-                Ok(_)  => gist.add_file(g),
-                Err(e) => fatal(e)
+                Ok(_) => gist.add_file(g),
+                Err(e) => fatal(e),
             }
         }
     }
@@ -89,8 +91,8 @@ fn main() {
             Ok(r) => {
                 let gist: GistResponse = json::decode(&r).unwrap();
                 println!("{}", gist.html_url);
-            },
-            Err(e) => fatal(e)
+            }
+            Err(e) => fatal(e),
         }
     }
 }

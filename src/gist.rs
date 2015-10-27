@@ -14,20 +14,20 @@ use std::path::Path;
 
 use error::Error;
 
-const GIST_API:          &'static str = "https://api.github.com/gists";
-const GITHUB_TOKEN:      &'static str = "GITHUB_TOKEN";
-const USER_AGENT:        &'static str = "Pepito Gist";
+const GIST_API: &'static str = "https://api.github.com/gists";
+const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
+const USER_AGENT: &'static str = "Pepito Gist";
 
 pub struct GistFile {
-    name:     String,
+    name: String,
     contents: String,
 }
 
 pub struct Gist {
     anonymous: bool,
-    public:    bool,
-    files:     Vec<GistFile>,
-    token:     String,
+    public: bool,
+    files: Vec<GistFile>,
+    token: String,
 }
 
 impl Gist {
@@ -38,10 +38,10 @@ impl Gist {
         }
 
         Gist {
-            token:     token.unwrap_or("".to_string()),
+            token: token.unwrap_or("".to_string()),
             anonymous: anonymous,
-            public:    public,
-            files:     vec![],
+            public: public,
+            files: vec![],
         }
     }
 
@@ -50,15 +50,15 @@ impl Gist {
     }
 
     // Add a file.
-    pub fn add_file(&mut self, gist : GistFile) {
+    pub fn add_file(&mut self, gist: GistFile) {
         self.files.push(gist);
     }
 
     // Sent to Github.
     pub fn create(&mut self) -> Result<String, Error> {
-        let client    = HyperClient::new();
+        let client = HyperClient::new();
         let json_body = self.to_json().to_string();
-        let uri       = &GIST_API.to_string();
+        let uri = &GIST_API.to_string();
 
         let mut req = client.post(uri);
         if !self.anonymous {
@@ -81,7 +81,7 @@ impl Gist {
 impl GistFile {
     pub fn new(name: String) -> GistFile {
         GistFile {
-            name:     name,
+            name: name,
             contents: String::new(),
         }
     }
@@ -111,7 +111,7 @@ impl ToJson for GistFile {
 
 impl ToJson for Gist {
     fn to_json(&self) -> Json {
-        let mut root  = BTreeMap::new();
+        let mut root = BTreeMap::new();
         let mut files = BTreeMap::new();
 
         root.insert("public".to_string(), self.public.to_json());
