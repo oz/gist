@@ -2,9 +2,7 @@
 
 A command-line tool for publishing gists, inspired by [icholy/gist][gogist].
 
-[gogist]: https://github.com/icholy/gist
-
-## Usage:
+## Usage
 
 Read a file from stdin:
 
@@ -40,14 +38,9 @@ echo stuff | gist | xclip
 echo something | gist | pbcopy
 ```
 
-## Install:
+## Installation
 
-``` sh
-$ git clone https://github.com/lespepitos/gist.git
-$ cd gist
-$ cargo build --release
-$ ./target/release/gist
-```
+Installation currently requires [cargo][cargo], just `cargo install gist`.
 
 For authentication, the program looks for an environment variable called
 `GITHUB_TOKEN`: it is mandatory to create a "secret" gist (the default).
@@ -59,3 +52,14 @@ Then append it to your `.profile`, or something with:
 ```sh
 export GITHUB_TOKEN="blah blah blah"
 ```
+
+## License
+
+MIT.
+
+## Hacking & bug reports
+
+Yes please: file issues, or better send patches and pull-requests.
+
+[cargo]: https://crates.io
+[gogist]: https://github.com/icholy/gist
