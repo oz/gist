@@ -8,9 +8,6 @@ use std::env;
 use std::process;
 use std::io::{self, Write};
 
-mod error;
-use error::Error;
-
 mod gist;
 use gist::{Gist, GistFile};
 
@@ -36,8 +33,8 @@ fn print_version(program: &str) {
     process::exit(E_HELP);
 }
 
-fn fatal(err: error::Error) {
-    io::stderr().write(format!("Error: {}", err).as_bytes()).ok();
+fn fatal(msg: &str) {
+    io::stderr().write(msg.as_bytes()).ok();
     process::exit(E_FATAL);
 }
 
@@ -81,7 +78,7 @@ fn main() {
             let mut g = GistFile::new(file_param);
             match g.read_file() {
                 Ok(_) => gist.add_file(g),
-                Err(e) => fatal(e),
+                Err(e) => fatal(&e.to_string()),
             }
         }
     }
@@ -92,7 +89,7 @@ fn main() {
                 let gist: GistResponse = json::decode(&r).unwrap();
                 println!("{}", gist.html_url);
             }
-            Err(e) => fatal(e),
+            Err(e) => fatal(&e.to_string()),
         }
     }
 }

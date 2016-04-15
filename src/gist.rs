@@ -12,8 +12,6 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
 
-use error::Error;
-
 const GIST_API: &'static str = "https://api.github.com/gists";
 const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
 const USER_AGENT: &'static str = "Pepito Gist";
@@ -55,7 +53,7 @@ impl Gist {
     }
 
     // Sent to Github.
-    pub fn create(&mut self) -> Result<String, Error> {
+    pub fn create(&mut self) -> Result<String, String> {
         let client = HyperClient::new();
         let json_body = self.to_json().to_string();
         let uri = &GIST_API.to_string();
@@ -65,16 +63,17 @@ impl Gist {
             req = req.header(Authorization(Bearer { token: self.token.to_owned() }))
         }
 
-        let mut res = try!(req.header(UserAgent(USER_AGENT.to_owned()))
-                              .header(ContentType::json())
-                              .body(json_body.as_bytes())
-                              .send());
+        let mut res = req.header(UserAgent(USER_AGENT.to_owned()))
+            .header(ContentType::json())
+            .body(json_body.as_bytes())
+            .send()
+            .unwrap();
         if res.status == StatusCode::Created {
             let mut body = String::new();
-            try!(res.read_to_string(&mut body));
+            res.read_to_string(&mut body).unwrap();
             return Ok(body);
         }
-        Err(Error::ApiError)
+        Err("API error".to_owned())
     }
 }
 
@@ -87,17 +86,15 @@ impl GistFile {
     }
 
     // Read standard input to contents buffer.
-    pub fn read_stdin(&mut self) -> Result<(), Error> {
-        try!(io::stdin().read_to_string(&mut self.contents));
-        Ok(())
+    pub fn read_stdin(&mut self) -> Result<usize, io::Error> {
+        io::stdin().read_to_string(&mut self.contents)
     }
 
     // Read file to contents buffer.
-    pub fn read_file(&mut self) -> Result<(), Error> {
+    pub fn read_file(&mut self) -> Result<usize, io::Error> {
         let path = Path::new(&self.name);
-        let mut fh = try!(File::open(&path));
-        try!(fh.read_to_string(&mut self.contents));
-        Ok(())
+        let mut fh = File::open(&path).unwrap();
+        fh.read_to_string(&mut self.contents)
     }
 }
 
