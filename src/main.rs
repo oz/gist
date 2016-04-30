@@ -1,5 +1,6 @@
 extern crate rustc_serialize;
 extern crate getopts;
+extern crate gist;
 
 use getopts::Options;
 use rustc_serialize::json;
@@ -8,8 +9,8 @@ use std::env;
 use std::process;
 use std::io::{self, Write};
 
-mod gist;
-use gist::{Gist, GistFile};
+use gist::gist::Gist;
+use gist::gist::gist_file::GistFile;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 

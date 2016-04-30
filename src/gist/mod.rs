@@ -1,30 +1,25 @@
+pub mod gist_file;
+
 extern crate rustc_serialize;
 extern crate hyper;
 
-use rustc_serialize::json::{ToJson, Json};
+use self::rustc_serialize::json::{ToJson, Json};
 use self::hyper::Client as HyperClient;
 use self::hyper::header::{Authorization, Bearer, UserAgent, ContentType};
 use self::hyper::status::StatusCode;
 
 use std::collections::BTreeMap;
 use std::env;
-use std::fs::File;
-use std::io::{self, Read};
-use std::path::Path;
+use std::io::Read;
 
 const GIST_API: &'static str = "https://api.github.com/gists";
 const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
 const USER_AGENT: &'static str = "Pepito Gist";
 
-pub struct GistFile {
-    name: String,
-    contents: String,
-}
-
 pub struct Gist {
     anonymous: bool,
     public: bool,
-    files: Vec<GistFile>,
+    files: Vec<gist_file::GistFile>,
     token: String,
 }
 
@@ -48,7 +43,7 @@ impl Gist {
     }
 
     // Add a file.
-    pub fn add_file(&mut self, gist: GistFile) {
+    pub fn add_file(&mut self, gist: gist_file::GistFile) {
         self.files.push(gist);
     }
 
@@ -64,45 +59,16 @@ impl Gist {
         }
 
         let mut res = req.header(UserAgent(USER_AGENT.to_owned()))
-            .header(ContentType::json())
-            .body(json_body.as_bytes())
-            .send()
-            .unwrap();
+                         .header(ContentType::json())
+                         .body(json_body.as_bytes())
+                         .send()
+                         .unwrap();
         if res.status == StatusCode::Created {
             let mut body = String::new();
             res.read_to_string(&mut body).unwrap();
             return Ok(body);
         }
         Err("API error".to_owned())
-    }
-}
-
-impl GistFile {
-    pub fn new(name: String) -> GistFile {
-        GistFile {
-            name: name,
-            contents: String::new(),
-        }
-    }
-
-    // Read standard input to contents buffer.
-    pub fn read_stdin(&mut self) -> Result<usize, io::Error> {
-        io::stdin().read_to_string(&mut self.contents)
-    }
-
-    // Read file to contents buffer.
-    pub fn read_file(&mut self) -> Result<usize, io::Error> {
-        let path = Path::new(&self.name);
-        let mut fh = File::open(&path).unwrap();
-        fh.read_to_string(&mut self.contents)
-    }
-}
-
-impl ToJson for GistFile {
-    fn to_json(&self) -> Json {
-        let mut root = BTreeMap::new();
-        root.insert("content".to_string(), self.contents.to_json());
-        Json::Object(root)
     }
 }
 
@@ -120,5 +86,15 @@ impl ToJson for Gist {
         }
         root.insert("files".to_string(), files.to_json());
         Json::Object(root)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ok() {
+        assert!(true);
     }
 }
