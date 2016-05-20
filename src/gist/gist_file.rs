@@ -22,15 +22,18 @@ impl GistFile {
     }
 
     // Read standard input to contents buffer.
-    pub fn read_stdin(&mut self) -> Result<usize, io::Error> {
-        io::stdin().read_to_string(&mut self.contents)
+    pub fn read_stdin(&mut self) -> io::Result<()> {
+        try!(io::stdin().read_to_string(&mut self.contents));
+        Ok(())
     }
 
     // Read file to contents buffer.
-    pub fn read_file(&mut self) -> Result<usize, io::Error> {
+    pub fn read_file(&mut self) -> io::Result<()> {
         let path = Path::new(&self.name);
-        let mut fh = File::open(&path).unwrap();
-        fh.read_to_string(&mut self.contents)
+        let mut fh = try!(File::open(&path));
+
+        try!(fh.read_to_string(&mut self.contents));
+        Ok(())
     }
 }
 
@@ -42,3 +45,25 @@ impl ToJson for GistFile {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn read_invalid_file() {
+        let mut f = GistFile::new("/not/found.txt".to_string());
+        assert!(f.read_file().is_err());
+    }
+
+    #[test]
+    fn read_valid_file() {
+        let mut f = GistFile::new("Cargo.toml".to_string());
+        assert!(f.read_file().is_ok());
+    }
+
+    #[test]
+    fn read_closed_stdin() {
+        let mut f = GistFile::new("Cargo.toml".to_string());
+        assert!(f.read_stdin().is_err());
+    }
+}
