@@ -25,7 +25,7 @@ pub struct Gist {
 
 impl Gist {
     pub fn new(public: bool, anonymous: bool) -> Gist {
-        let token = env::var(&GITHUB_TOKEN.to_string());
+        let token = env::var(GITHUB_TOKEN);
         if token.is_err() && !anonymous {
             panic!("Missing GITHUB_TOKEN environment variable.");
         }
