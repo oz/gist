@@ -9,7 +9,7 @@ use std::path::Path;
 
 pub struct GistFile {
     pub name: String,
-    contents: String,
+    pub contents: String,
 }
 
 

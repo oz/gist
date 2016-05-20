@@ -92,9 +92,48 @@ impl ToJson for Gist {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::rustc_serialize::json::ToJson;
+
+    fn fake_gist_file(contents : Option<&str>) -> gist_file::GistFile {
+        let mut f = gist_file::GistFile::new("/path/to/file.txt".to_string());
+        if contents.is_some() {
+            f.contents = contents.unwrap().to_string();
+        }
+        return f
+    }
 
     #[test]
-    fn test_ok() {
-        assert!(true);
+    fn add_files() {
+        let mut g = Gist::new(true, true);
+        g.add_file(fake_gist_file(None));
+        g.add_file(fake_gist_file(None));
+        assert_eq!(g.files.len(), 2);
+    }
+
+    #[test]
+    fn emptyness() {
+        let mut g = Gist::new(true, true);
+        assert!(g.is_empty());
+
+        g.add_file(fake_gist_file(None));
+        assert!(!g.is_empty());
+    }
+
+    #[test]
+    fn public_json() {
+        let mut public = Gist::new(true, true);
+        public.add_file(fake_gist_file(Some("public file contents")));
+
+        let public_json = public.to_json().to_string();
+        assert_eq!(public_json, "{\"files\":{\"file.txt\":{\"content\":\"public file contents\"}},\"public\":true}");
+    }
+
+    #[test]
+    fn private_json() {
+        let mut private = Gist::new(false, true);
+        private.add_file(fake_gist_file(Some("private file contents")));
+
+        let private_json = private.to_json().to_string();
+        assert_eq!(private_json, "{\"files\":{\"file.txt\":{\"content\":\"private file contents\"}},\"public\":false}");
     }
 }
