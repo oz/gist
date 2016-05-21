@@ -60,10 +60,4 @@ mod tests {
         let mut f = GistFile::new("Cargo.toml".to_string());
         assert!(f.read_file().is_ok());
     }
-
-    #[test]
-    fn read_closed_stdin() {
-        let mut f = GistFile::new("Cargo.toml".to_string());
-        assert!(f.read_stdin().is_err());
-    }
 }
