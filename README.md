@@ -45,7 +45,8 @@ echo something | gist | pbcopy
 Installation currently requires [cargo][cargo], just `cargo install gist`.
 
 For authentication, the program looks for an environment variable called
-`GITHUB_TOKEN`: it is mandatory to create a "secret" gist (the default).
+`GITHUB_GIST_TOKEN` or `GITHUB_TOKEN`: it is mandatory to create a "secret"
+gist (the default).
 
 You can generate one at: https://github.com/settings/tokens
 
@@ -53,6 +54,8 @@ Then append it to your `.profile`, or something with:
 
 ```sh
 export GITHUB_TOKEN="blah blah blah"
+# or
+export GITHUB_GIST_TOKEN="blah blah blah"
 ```
 
 ## License
