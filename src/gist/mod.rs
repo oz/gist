@@ -14,6 +14,7 @@ use std::io::Read;
 
 const GIST_API: &'static str = "https://api.github.com/gists";
 const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
+const GITHUB_GIST_TOKEN: &'static str = "GITHUB_GIST_TOKEN";
 const USER_AGENT: &'static str = "Pepito Gist";
 
 pub struct Gist {
@@ -25,17 +26,30 @@ pub struct Gist {
 
 impl Gist {
     pub fn new(public: bool, anonymous: bool) -> Gist {
-        let token = env::var(GITHUB_TOKEN);
-        if token.is_err() && !anonymous {
-            panic!("Missing GITHUB_TOKEN environment variable.");
+        let mut token = "".to_string();
+        if !anonymous {
+            match Gist::get_token(vec![GITHUB_GIST_TOKEN, GITHUB_TOKEN]) {
+                Some(t) => token = t,
+                None => panic!("Missing GITHUB_GIST_TOKEN or GITHUB_TOKEN environment variable."),
+            }
         }
 
         Gist {
-            token: token.unwrap_or("".to_string()),
+            token: token,
             anonymous: anonymous,
             public: public,
             files: vec![],
         }
+    }
+
+    fn get_token(tokens: Vec<&str>) -> Option<String> {
+        for token in tokens.iter() {
+            match env::var(token) {
+                Ok(t) => return Some(t),
+                Err(_) => {}
+            }
+        }
+        None
     }
 
     pub fn is_empty(&self) -> bool {
