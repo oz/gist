@@ -21,11 +21,12 @@ pub struct Gist {
     anonymous: bool,
     public: bool,
     files: Vec<gist_file::GistFile>,
+    desc: Option<String>,
     token: String,
 }
 
 impl Gist {
-    pub fn new(public: bool, anonymous: bool) -> Gist {
+    pub fn new(public: bool, anonymous: bool, desc: Option<String>) -> Gist {
         let mut token = "".to_string();
         if !anonymous {
             match Gist::get_token(vec![GITHUB_GIST_TOKEN, GITHUB_TOKEN]) {
@@ -39,6 +40,7 @@ impl Gist {
             anonymous: anonymous,
             public: public,
             files: vec![],
+            desc: desc,
         }
     }
 
@@ -99,6 +101,9 @@ impl ToJson for Gist {
             files.insert(name, g.to_json());
         }
         root.insert("files".to_string(), files.to_json());
+        if self.desc.is_some() {
+            root.insert("description".to_string(), self.desc.to_json());
+        }
         Json::Object(root)
     }
 }
@@ -118,7 +123,7 @@ mod tests {
 
     #[test]
     fn add_files() {
-        let mut g = Gist::new(true, true);
+        let mut g = Gist::new(true, true, None);
         g.add_file(fake_gist_file(None));
         g.add_file(fake_gist_file(None));
         assert_eq!(g.files.len(), 2);
@@ -126,7 +131,7 @@ mod tests {
 
     #[test]
     fn emptyness() {
-        let mut g = Gist::new(true, true);
+        let mut g = Gist::new(true, true, None);
         assert!(g.is_empty());
 
         g.add_file(fake_gist_file(None));
@@ -135,7 +140,7 @@ mod tests {
 
     #[test]
     fn public_json() {
-        let mut public = Gist::new(true, true);
+        let mut public = Gist::new(true, true, None);
         public.add_file(fake_gist_file(Some("public file contents")));
 
         let public_json = public.to_json().to_string();
@@ -146,12 +151,24 @@ mod tests {
 
     #[test]
     fn private_json() {
-        let mut private = Gist::new(false, true);
+        let mut private = Gist::new(false, true, None);
         private.add_file(fake_gist_file(Some("private file contents")));
 
         let private_json = private.to_json().to_string();
         assert_eq!(private_json,
                    "{\"files\":{\"file.txt\":{\"content\":\"private file \
                     contents\"}},\"public\":false}");
+    }
+
+    #[test]
+    fn gist_with_description() {
+        let desc = Some("description".to_string());
+        let mut private = Gist::new(false, true, desc);
+        private.add_file(fake_gist_file(Some("private file contents")));
+
+        let private_json = private.to_json().to_string();
+        assert_eq!(private_json,
+                   "{\"description\":\"description\",\"files\":{\"file.txt\":{\"content\":\
+                    \"private file contents\"}},\"public\":false}");
     }
 }
