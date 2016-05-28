@@ -42,6 +42,7 @@ fn fatal(msg: &str) {
 fn parse_args(args: Vec<String>) -> getopts::Matches {
     let mut opts = Options::new();
     opts.optopt("f", "file", "set file name", "NAME");
+    opts.optopt("d", "desc", "set description", "DESC");
     opts.optflag("p", "public", "make public");
     opts.optflag("a", "anonymous", "make anonymous");
     opts.optflag("h", "help", "print this");
@@ -62,11 +63,12 @@ fn main() {
     let params = parse_args(env::args().collect());
     let is_public = params.opt_present("p");
     let is_anonymous = params.opt_present("a");
+    let desc = params.opt_str("d");
     let filename = match params.opt_str("f") {
         Some(name) => name,
         None => DEFAULT_GIST_NAME.to_string(),
     };
-    let mut gist = Gist::new(is_public, is_anonymous);
+    let mut gist = Gist::new(is_public, is_anonymous, desc);
 
     // Read from stdin, unless we receive a bunch of filenames.
     if params.free.is_empty() {
