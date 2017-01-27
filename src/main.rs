@@ -1,8 +1,7 @@
-extern crate rustc_serialize;
 extern crate getopts;
+extern crate rustc_serialize;
 
 use getopts::Options;
-use rustc_serialize::json;
 
 use std::env;
 use std::process;
@@ -11,7 +10,7 @@ use std::io::{self, Write};
 mod gist;
 use gist::Gist;
 use gist::gist_file::GistFile;
-use gist::response::Response;
+use gist::response::decode;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -84,8 +83,8 @@ fn main() {
 
     if !gist.is_empty() {
         match gist.create() {
-            Ok(r) => {
-                let gist: Response = json::decode(&r).unwrap();
+            Ok(response) => {
+                let gist = decode(&response).unwrap();
                 println!("{}", gist.html_url);
             }
             Err(e) => fatal(&e.to_string()),
