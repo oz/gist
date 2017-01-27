@@ -1,4 +1,5 @@
 pub mod gist_file;
+pub mod response;
 
 extern crate rustc_serialize;
 extern crate hyper;
@@ -75,10 +76,10 @@ impl Gist {
         }
 
         let mut res = req.header(UserAgent(USER_AGENT.to_owned()))
-                         .header(ContentType::json())
-                         .body(json_body.as_bytes())
-                         .send()
-                         .unwrap();
+            .header(ContentType::json())
+            .body(json_body.as_bytes())
+            .send()
+            .unwrap();
         if res.status == StatusCode::Created {
             let mut body = String::new();
             res.read_to_string(&mut body).unwrap();

@@ -1,6 +1,5 @@
 extern crate rustc_serialize;
 extern crate getopts;
-extern crate gist;
 
 use getopts::Options;
 use rustc_serialize::json;
@@ -9,19 +8,16 @@ use std::env;
 use std::process;
 use std::io::{self, Write};
 
-use gist::gist::Gist;
-use gist::gist::gist_file::GistFile;
+mod gist;
+use gist::Gist;
+use gist::gist_file::GistFile;
+use gist::response::Response;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 const DEFAULT_GIST_NAME: &'static str = "Untitled";
 const E_HELP: i32 = 1;
 const E_FATAL: i32 = 2;
-
-#[derive(RustcDecodable)]
-struct GistResponse {
-    html_url: String,
-}
 
 fn print_usage(program: &str, opts: Options) {
     let brief = opts.short_usage(program);
@@ -89,7 +85,7 @@ fn main() {
     if !gist.is_empty() {
         match gist.create() {
             Ok(r) => {
-                let gist: GistResponse = json::decode(&r).unwrap();
+                let gist: Response = json::decode(&r).unwrap();
                 println!("{}", gist.html_url);
             }
             Err(e) => fatal(&e.to_string()),

@@ -12,7 +12,6 @@ pub struct GistFile {
     pub contents: String,
 }
 
-
 impl GistFile {
     pub fn new(name: String) -> GistFile {
         GistFile {
