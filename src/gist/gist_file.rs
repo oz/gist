@@ -1,46 +1,43 @@
-extern crate rustc_serialize;
-
-use self::rustc_serialize::json::{ToJson, Json};
-use std::collections::BTreeMap;
+extern crate serde_json;
 
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GistFile {
+    #[serde(skip_serializing, default = "GistFile::default_name")]
     pub name: String,
-    pub contents: String,
+
+    #[serde(rename(serialize = "content"))]
+    pub content: String,
 }
 
 impl GistFile {
     pub fn new(name: String) -> GistFile {
         GistFile {
             name: name,
-            contents: String::new(),
+            content: String::new(),
         }
     }
 
-    // Read standard input to contents buffer.
+    pub fn default_name() -> String {
+        "content".to_string()
+    }
+
+    // Read standard input to content buffer.
     pub fn read_stdin(&mut self) -> io::Result<()> {
-        try!(io::stdin().read_to_string(&mut self.contents));
+        try!(io::stdin().read_to_string(&mut self.content));
         Ok(())
     }
 
-    // Read file to contents buffer.
+    // Read file to content buffer.
     pub fn read_file(&mut self) -> io::Result<()> {
         let path = Path::new(&self.name);
         let mut fh = try!(File::open(&path));
 
-        try!(fh.read_to_string(&mut self.contents));
+        try!(fh.read_to_string(&mut self.content));
         Ok(())
-    }
-}
-
-impl ToJson for GistFile {
-    fn to_json(&self) -> Json {
-        let mut root = BTreeMap::new();
-        root.insert("content".to_string(), self.contents.to_json());
-        Json::Object(root)
     }
 }
 

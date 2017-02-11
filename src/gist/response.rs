@@ -1,13 +1,10 @@
-extern crate rustc_serialize;
+extern crate serde_json;
 
-use self::rustc_serialize::json;
-use self::rustc_serialize::json::DecoderError;
-
-#[derive(RustcDecodable)]
+#[derive(Deserialize, Debug)]
 pub struct Response {
     pub html_url: String,
 }
 
-pub fn decode(res: &str) -> Result<Response, DecoderError> {
-    json::decode(res)
+pub fn decode(res: &str) -> Result<Response, serde_json::Error> {
+    serde_json::from_str(&res)
 }

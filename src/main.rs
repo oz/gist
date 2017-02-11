@@ -1,5 +1,6 @@
 extern crate getopts;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
 
 use getopts::Options;
 

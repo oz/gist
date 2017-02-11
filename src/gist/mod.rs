@@ -1,10 +1,9 @@
 pub mod gist_file;
 pub mod response;
 
-extern crate rustc_serialize;
+extern crate serde_json;
 extern crate hyper;
 
-use self::rustc_serialize::json::{ToJson, Json};
 use self::hyper::Client as HyperClient;
 use self::hyper::header::{Authorization, Bearer, UserAgent, ContentType};
 use self::hyper::status::StatusCode;
@@ -18,12 +17,18 @@ const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
 const GITHUB_GIST_TOKEN: &'static str = "GITHUB_GIST_TOKEN";
 const USER_AGENT: &'static str = "Pepito Gist";
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Gist {
+    #[serde(skip_serializing,skip_deserializing)]
     anonymous: bool,
-    public: bool,
-    files: Vec<gist_file::GistFile>,
-    desc: Option<String>,
+    #[serde(skip_serializing,skip_deserializing)]
     token: String,
+
+    public: bool,
+    files: BTreeMap<String, gist_file::GistFile>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
 }
 
 impl Gist {
@@ -40,8 +45,8 @@ impl Gist {
             token: token,
             anonymous: anonymous,
             public: public,
-            files: vec![],
-            desc: desc,
+            files: BTreeMap::new(),
+            description: desc,
         }
     }
 
@@ -61,7 +66,11 @@ impl Gist {
 
     // Add a file.
     pub fn add_file(&mut self, gist: gist_file::GistFile) {
-        self.files.push(gist);
+        let fullpath = gist.name.clone();
+        let v: Vec<&str> = fullpath.split('/').collect();
+        let name: String = v.last().unwrap().to_string();
+        self.files.insert(name, gist);
+        // self.files.push(gist);
     }
 
     // Sent to Github.
@@ -87,37 +96,20 @@ impl Gist {
         }
         Err("API error".to_owned())
     }
-}
 
-impl ToJson for Gist {
-    fn to_json(&self) -> Json {
-        let mut root = BTreeMap::new();
-        let mut files = BTreeMap::new();
-
-        root.insert("public".to_string(), self.public.to_json());
-        for g in self.files.iter() {
-            // Remove directories from file path on serialization.
-            let v: Vec<&str> = g.name.split('/').collect();
-            let name: String = v.last().unwrap().to_string();
-            files.insert(name, g.to_json());
-        }
-        root.insert("files".to_string(), files.to_json());
-        if self.desc.is_some() {
-            root.insert("description".to_string(), self.desc.to_json());
-        }
-        Json::Object(root)
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::rustc_serialize::json::ToJson;
 
-    fn fake_gist_file(contents: Option<&str>) -> gist_file::GistFile {
-        let mut f = gist_file::GistFile::new("/path/to/file.txt".to_string());
-        if contents.is_some() {
-            f.contents = contents.unwrap().to_string();
+    fn fake_gist_file(name: &str, content: Option<&str>) -> gist_file::GistFile {
+        let mut f = gist_file::GistFile::new(name.to_string());
+        if content.is_some() {
+            f.content = content.unwrap().to_string();
         }
         return f;
     }
@@ -125,8 +117,8 @@ mod tests {
     #[test]
     fn add_files() {
         let mut g = Gist::new(true, true, None);
-        g.add_file(fake_gist_file(None));
-        g.add_file(fake_gist_file(None));
+        g.add_file(fake_gist_file("/path/to/file.txt", None));
+        g.add_file(fake_gist_file("/path/to/other_file.txt", None));
         assert_eq!(g.files.len(), 2);
     }
 
@@ -135,41 +127,41 @@ mod tests {
         let mut g = Gist::new(true, true, None);
         assert!(g.is_empty());
 
-        g.add_file(fake_gist_file(None));
+        g.add_file(fake_gist_file("file.txt", None));
         assert!(!g.is_empty());
     }
 
     #[test]
     fn public_json() {
         let mut public = Gist::new(true, true, None);
-        public.add_file(fake_gist_file(Some("public file contents")));
+        public.add_file(fake_gist_file("file.txt", Some("public file contents")));
 
         let public_json = public.to_json().to_string();
         assert_eq!(public_json,
-                   "{\"files\":{\"file.txt\":{\"content\":\"public file \
-                    contents\"}},\"public\":true}");
+                   "{\"public\":true,\"files\":{\"file.txt\":{\"content\":\"public file \
+                    contents\"}}}");
     }
 
     #[test]
     fn private_json() {
         let mut private = Gist::new(false, true, None);
-        private.add_file(fake_gist_file(Some("private file contents")));
+        private.add_file(fake_gist_file("secret.txt", Some("private file contents")));
 
         let private_json = private.to_json().to_string();
         assert_eq!(private_json,
-                   "{\"files\":{\"file.txt\":{\"content\":\"private file \
-                    contents\"}},\"public\":false}");
+                   "{\"public\":false,\"files\":{\"secret.txt\":{\"content\":\"private file \
+                    contents\"}}}");
     }
 
     #[test]
     fn gist_with_description() {
         let desc = Some("description".to_string());
         let mut private = Gist::new(false, true, desc);
-        private.add_file(fake_gist_file(Some("private file contents")));
+        private.add_file(fake_gist_file("secret.txt", Some("private file contents")));
 
         let private_json = private.to_json().to_string();
         assert_eq!(private_json,
-                   "{\"description\":\"description\",\"files\":{\"file.txt\":{\"content\":\
-                    \"private file contents\"}},\"public\":false}");
+                   "{\"public\":false,\"files\":{\"secret.txt\":{\"content\":\
+                    \"private file contents\"}},\"description\":\"description\"}");
     }
 }

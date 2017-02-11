@@ -1,7 +1,7 @@
 [package]
 name = "gist"
 description = "A simple Github Gist client"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Arnaud Berthomier <oz@lespepitos.org>"]
 license = "MIT"
 repository = "https://github.com/lespepitos/gist"
@@ -12,5 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 getopts = "0.2"
-rustc-serialize = "0.3"
 hyper = "0.9"
+serde = "0.9"
+serde_json = "0.9"
+serde_derive = "0.9"
