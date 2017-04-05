@@ -1,6 +1,6 @@
 [root]
 name = "gist"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)",
