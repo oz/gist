@@ -1,16 +1,14 @@
-pub mod gist_file;
-pub mod response;
+use serde_json;
 
-extern crate serde_json;
-extern crate hyper;
+use reqwest::Client;
+use reqwest::header::{Headers, UserAgent, ContentType, Authorization, Bearer};
 
-use self::hyper::Client as HyperClient;
-use self::hyper::header::{Authorization, Bearer, UserAgent, ContentType};
-use self::hyper::status::StatusCode;
-
+use std::io::Read;
 use std::collections::BTreeMap;
 use std::env;
-use std::io::Read;
+
+use gist_file::GistFile;
+use error::Result;
 
 const GIST_API: &'static str = "https://api.github.com/gists";
 const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
@@ -25,7 +23,7 @@ pub struct Gist {
     token: String,
 
     public: bool,
-    files: BTreeMap<String, gist_file::GistFile>,
+    files: BTreeMap<String, GistFile>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
@@ -65,49 +63,52 @@ impl Gist {
     }
 
     // Add a file.
-    pub fn add_file(&mut self, gist: gist_file::GistFile) {
+    pub fn add_file(&mut self, gist: GistFile) {
         let fullpath = gist.name.clone();
         let v: Vec<&str> = fullpath.split('/').collect();
         let name: String = v.last().unwrap().to_string();
         self.files.insert(name, gist);
-        // self.files.push(gist);
     }
 
     // Sent to Github.
-    pub fn create(&mut self) -> Result<String, String> {
-        let client = HyperClient::new();
-        let json_body = self.to_json().to_string();
-        let uri = &GIST_API.to_string();
+    pub fn create(&mut self) -> Result<String> {
+        let client = Client::new()?;
+        let json_body = self.to_json();//.to_string();
 
-        let mut req = client.post(uri);
-        if !self.anonymous {
-            req = req.header(Authorization(Bearer { token: self.token.to_owned() }))
-        }
-
-        let mut res = req.header(UserAgent(USER_AGENT.to_owned()))
-            .header(ContentType::json())
-            .body(json_body.as_bytes())
-            .send()
-            .unwrap();
-        if res.status == StatusCode::Created {
+        let mut res = client.post(&GIST_API.to_string())?
+            .headers(self.construct_headers())
+            .body(json_body)
+            .send()?;
+        if res.status().is_success() {
             let mut body = String::new();
-            res.read_to_string(&mut body).unwrap();
-            return Ok(body);
+            res.read_to_string(&mut body)?;
+            return Ok(body)
         }
-        Err("API error".to_owned())
+        Err("API error".into())
     }
 
     pub fn to_json(&self) -> String {
         serde_json::to_string(&self).unwrap()
+    }
+
+    fn construct_headers(&self) -> Headers {
+        let mut headers = Headers::new();
+        headers.set(UserAgent::new(USER_AGENT.to_string()));
+        headers.set(ContentType::json());
+        if !self.anonymous {
+            headers.set(Authorization(Bearer { token: self.token.to_owned() }));
+        }
+        headers
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gist_file::GistFile;
 
-    fn fake_gist_file(name: &str, content: Option<&str>) -> gist_file::GistFile {
-        let mut f = gist_file::GistFile::new(name.to_string());
+    fn fake_gist_file(name: &str, content: Option<&str>) -> GistFile {
+        let mut f = GistFile::new(name.to_string());
         if content.is_some() {
             f.content = content.unwrap().to_string();
         }

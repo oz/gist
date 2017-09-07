@@ -1,6 +1,5 @@
 extern crate getopts;
-#[macro_use]
-extern crate serde_derive;
+extern crate gist;
 
 use getopts::Options;
 
@@ -8,8 +7,7 @@ use std::env;
 use std::process;
 use std::io::{self, Write};
 
-mod gist;
-use gist::Gist;
+use gist::gist::Gist;
 use gist::gist_file::GistFile;
 use gist::response::decode;
 
