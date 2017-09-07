@@ -5,6 +5,7 @@ version = "0.4.3"
 authors = ["Arnaud Berthomier <oz@lespepitos.org>"]
 license = "MIT"
 repository = "https://github.com/lespepitos/gist"
+readme = "README.md"
 
 [[bin]]
 name = "gist"
