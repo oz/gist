@@ -1,7 +1,7 @@
 use serde_json;
 
 use reqwest::Client;
-use reqwest::header::{Headers, UserAgent, ContentType, Authorization, Bearer};
+use reqwest::header::{Authorization, Bearer, ContentType, Headers, UserAgent};
 
 use std::io::Read;
 use std::collections::BTreeMap;
@@ -17,16 +17,13 @@ const USER_AGENT: &'static str = "Pepito Gist";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Gist {
-    #[serde(skip_serializing,skip_deserializing)]
-    anonymous: bool,
-    #[serde(skip_serializing,skip_deserializing)]
-    token: String,
+    #[serde(skip_serializing, skip_deserializing)] anonymous: bool,
+    #[serde(skip_serializing, skip_deserializing)] token: String,
 
     public: bool,
     files: BTreeMap<String, GistFile>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")] description: Option<String>,
 }
 
 impl Gist {
@@ -73,16 +70,17 @@ impl Gist {
     // Sent to Github.
     pub fn create(&mut self) -> Result<String> {
         let client = Client::new()?;
-        let json_body = self.to_json();//.to_string();
+        let json_body = self.to_json(); //.to_string();
 
-        let mut res = client.post(&GIST_API.to_string())?
+        let mut res = client
+            .post(&GIST_API.to_string())?
             .headers(self.construct_headers())
             .body(json_body)
             .send()?;
         if res.status().is_success() {
             let mut body = String::new();
             res.read_to_string(&mut body)?;
-            return Ok(body)
+            return Ok(body);
         }
         Err("API error".into())
     }
@@ -96,7 +94,9 @@ impl Gist {
         headers.set(UserAgent::new(USER_AGENT.to_string()));
         headers.set(ContentType::json());
         if !self.anonymous {
-            headers.set(Authorization(Bearer { token: self.token.to_owned() }));
+            headers.set(Authorization(Bearer {
+                token: self.token.to_owned(),
+            }));
         }
         headers
     }
@@ -138,9 +138,11 @@ mod tests {
         public.add_file(fake_gist_file("file.txt", Some("public file contents")));
 
         let public_json = public.to_json().to_string();
-        assert_eq!(public_json,
-                   "{\"public\":true,\"files\":{\"file.txt\":{\"content\":\"public file \
-                    contents\"}}}");
+        assert_eq!(
+            public_json,
+            "{\"public\":true,\"files\":{\"file.txt\":{\"content\":\"public file \
+             contents\"}}}"
+        );
     }
 
     #[test]
@@ -149,9 +151,11 @@ mod tests {
         private.add_file(fake_gist_file("secret.txt", Some("private file contents")));
 
         let private_json = private.to_json().to_string();
-        assert_eq!(private_json,
-                   "{\"public\":false,\"files\":{\"secret.txt\":{\"content\":\"private file \
-                    contents\"}}}");
+        assert_eq!(
+            private_json,
+            "{\"public\":false,\"files\":{\"secret.txt\":{\"content\":\"private file \
+             contents\"}}}"
+        );
     }
 
     #[test]
@@ -161,8 +165,10 @@ mod tests {
         private.add_file(fake_gist_file("secret.txt", Some("private file contents")));
 
         let private_json = private.to_json().to_string();
-        assert_eq!(private_json,
-                   "{\"public\":false,\"files\":{\"secret.txt\":{\"content\":\
-                    \"private file contents\"}},\"description\":\"description\"}");
+        assert_eq!(
+            private_json,
+            "{\"public\":false,\"files\":{\"secret.txt\":{\"content\":\
+             \"private file contents\"}},\"description\":\"description\"}"
+        );
     }
 }

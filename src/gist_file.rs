@@ -6,11 +6,9 @@ use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GistFile {
-    #[serde(skip_serializing, default = "GistFile::default_name")]
-    pub name: String,
+    #[serde(skip_serializing, default = "GistFile::default_name")] pub name: String,
 
-    #[serde(rename(serialize = "content"))]
-    pub content: String,
+    #[serde(rename(serialize = "content"))] pub content: String,
 }
 
 impl GistFile {

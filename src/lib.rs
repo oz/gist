@@ -1,8 +1,10 @@
-#[macro_use] extern crate error_chain;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate error_chain;
+#[macro_use]
+extern crate serde_derive;
 
-extern crate serde_json;
 extern crate reqwest;
+extern crate serde_json;
 
 pub mod error;
 pub mod gist;
