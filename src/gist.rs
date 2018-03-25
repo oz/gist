@@ -17,7 +17,6 @@ const USER_AGENT: &'static str = "Pepito Gist";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Gist {
-    #[serde(skip_serializing, skip_deserializing)] anonymous: bool,
     #[serde(skip_serializing, skip_deserializing)] token: String,
 
     public: bool,
@@ -27,18 +26,15 @@ pub struct Gist {
 }
 
 impl Gist {
-    pub fn new(public: bool, anonymous: bool, desc: Option<String>) -> Gist {
-        let mut token = "".to_string();
-        if !anonymous {
-            match Gist::get_token(vec![GITHUB_GIST_TOKEN, GITHUB_TOKEN]) {
-                Some(t) => token = t,
-                None => panic!("Missing GITHUB_GIST_TOKEN or GITHUB_TOKEN environment variable."),
-            }
+    pub fn new(public: bool, desc: Option<String>) -> Gist {
+        let token : String;
+        match Gist::get_token(vec![GITHUB_GIST_TOKEN, GITHUB_TOKEN]) {
+            Some(t) => token = t,
+            None => panic!("Missing GITHUB_GIST_TOKEN or GITHUB_TOKEN environment variable."),
         }
 
         Gist {
             token: token,
-            anonymous: anonymous,
             public: public,
             files: BTreeMap::new(),
             description: desc,
@@ -93,11 +89,9 @@ impl Gist {
         let mut headers = Headers::new();
         headers.set(UserAgent::new(USER_AGENT.to_string()));
         headers.set(ContentType::json());
-        if !self.anonymous {
-            headers.set(Authorization(Bearer {
-                token: self.token.to_owned(),
-            }));
-        }
+        headers.set(Authorization(Bearer {
+            token: self.token.to_owned(),
+        }));
         headers
     }
 }
@@ -117,7 +111,7 @@ mod tests {
 
     #[test]
     fn add_files() {
-        let mut g = Gist::new(true, true, None);
+        let mut g = Gist::new(true, None);
         g.add_file(fake_gist_file("/path/to/file.txt", None));
         g.add_file(fake_gist_file("/path/to/other_file.txt", None));
         assert_eq!(g.files.len(), 2);
@@ -125,7 +119,7 @@ mod tests {
 
     #[test]
     fn emptyness() {
-        let mut g = Gist::new(true, true, None);
+        let mut g = Gist::new(true, None);
         assert!(g.is_empty());
 
         g.add_file(fake_gist_file("file.txt", None));
@@ -134,7 +128,7 @@ mod tests {
 
     #[test]
     fn public_json() {
-        let mut public = Gist::new(true, true, None);
+        let mut public = Gist::new(true, None);
         public.add_file(fake_gist_file("file.txt", Some("public file contents")));
 
         let public_json = public.to_json().to_string();
@@ -147,7 +141,7 @@ mod tests {
 
     #[test]
     fn private_json() {
-        let mut private = Gist::new(false, true, None);
+        let mut private = Gist::new(false, None);
         private.add_file(fake_gist_file("secret.txt", Some("private file contents")));
 
         let private_json = private.to_json().to_string();
@@ -161,7 +155,7 @@ mod tests {
     #[test]
     fn gist_with_description() {
         let desc = Some("description".to_string());
-        let mut private = Gist::new(false, true, desc);
+        let mut private = Gist::new(false, desc);
         private.add_file(fake_gist_file("secret.txt", Some("private file contents")));
 
         let private_json = private.to_json().to_string();

@@ -44,9 +44,9 @@ echo something | gist | pbcopy
 
 Installation currently requires [cargo][cargo], just `cargo install gist`.
 
-For authentication, the program looks for an environment variable called
-`GITHUB_GIST_TOKEN` or `GITHUB_TOKEN`: it is mandatory to create a "secret"
-gist (the default).
+For authentication, the program requires an environment variable called
+`GITHUB_GIST_TOKEN` or `GITHUB_TOKEN`. It is mandatory as Github killed
+anonymous Gists in 2018.
 
 You can generate one at: https://github.com/settings/tokens
 
