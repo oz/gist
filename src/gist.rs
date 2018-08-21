@@ -2,13 +2,12 @@ use serde_json;
 
 use reqwest::Client;
 use reqwest::header::{Authorization, Bearer, ContentType, Headers, UserAgent};
+use failure::Error;
 
 use std::io::Read;
 use std::collections::BTreeMap;
 use std::env;
-
 use gist_file::GistFile;
-use error::Result;
 
 const GIST_API: &'static str = "https://api.github.com/gists";
 const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
@@ -63,10 +62,10 @@ impl Gist {
         self.files.insert(name, gist);
     }
 
-    // Sent to Github.
-    pub fn create(&mut self) -> Result<String> {
+    // Send to Github.
+    pub fn create(&mut self) -> Result<String, Error> {
         let client = Client::new()?;
-        let json_body = self.to_json(); //.to_string();
+        let json_body = self.to_json();
 
         let mut res = client
             .post(&GIST_API.to_string())?
@@ -78,7 +77,7 @@ impl Gist {
             res.read_to_string(&mut body)?;
             return Ok(body);
         }
-        Err("API error".into())
+        Err(format_err!("API error"))
     }
 
     pub fn to_json(&self) -> String {
