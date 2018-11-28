@@ -1,13 +1,13 @@
 use serde_json;
 
-use reqwest::Client;
-use reqwest::header::{Authorization, Bearer, ContentType, Headers, UserAgent};
 use failure::Error;
+use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::Client;
 
-use std::io::Read;
+use gist_file::GistFile;
 use std::collections::BTreeMap;
 use std::env;
-use gist_file::GistFile;
+use std::io::Read;
 
 const GIST_API: &'static str = "https://api.github.com/gists";
 const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
@@ -16,17 +16,19 @@ const USER_AGENT: &'static str = "Pepito Gist";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Gist {
-    #[serde(skip_serializing, skip_deserializing)] token: String,
+    #[serde(skip_serializing, skip_deserializing)]
+    token: String,
 
     public: bool,
     files: BTreeMap<String, GistFile>,
 
-    #[serde(skip_serializing_if = "Option::is_none")] description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
 }
 
 impl Gist {
     pub fn new(public: bool, desc: Option<String>) -> Gist {
-        let token : String;
+        let token: String;
         match Gist::get_token(vec![GITHUB_GIST_TOKEN, GITHUB_TOKEN]) {
             Some(t) => token = t,
             None => panic!("Missing GITHUB_GIST_TOKEN or GITHUB_TOKEN environment variable."),
@@ -64,11 +66,12 @@ impl Gist {
 
     // Send to Github.
     pub fn create(&mut self) -> Result<String, Error> {
-        let client = Client::new()?;
+        let client = Client::new();
         let json_body = self.to_json();
 
         let mut res = client
-            .post(&GIST_API.to_string())?
+            .post(&GIST_API.to_string())
+            .bearer_auth(self.token.to_owned())
             .headers(self.construct_headers())
             .body(json_body)
             .send()?;
@@ -84,13 +87,16 @@ impl Gist {
         serde_json::to_string(&self).unwrap()
     }
 
-    fn construct_headers(&self) -> Headers {
-        let mut headers = Headers::new();
-        headers.set(UserAgent::new(USER_AGENT.to_string()));
-        headers.set(ContentType::json());
-        headers.set(Authorization(Bearer {
-            token: self.token.to_owned(),
-        }));
+    fn construct_headers(&self) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            reqwest::header::USER_AGENT,
+            HeaderValue::from_static(USER_AGENT),
+        );
+        headers.insert(
+            reqwest::header::CONTENT_TYPE,
+            HeaderValue::from_static("application/json"),
+        );
         headers
     }
 }
