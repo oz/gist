@@ -4,7 +4,7 @@ use failure::Error;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::Client;
 
-use gist_file::GistFile;
+use crate::gist_file::GistFile;
 use std::collections::BTreeMap;
 use std::env;
 use std::io::Read;
@@ -104,7 +104,7 @@ impl Gist {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gist_file::GistFile;
+    use crate::gist_file::GistFile;
 
     fn fake_gist_file(name: &str, content: Option<&str>) -> GistFile {
         let mut f = GistFile::new(name.to_string());
