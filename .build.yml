@@ -1,0 +1,11 @@
+image: archlinux
+packages:
+  - rust
+sources:
+  - https://github.com/LesPepitos/gist.git
+environment:
+  GITHUB_TOKEN: test
+tasks:
+  - build: |
+      cd gist
+      cargo test
