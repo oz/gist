@@ -12,12 +12,16 @@ use std::io::Read;
 const GIST_API: &'static str = "https://api.github.com/gists";
 const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
 const GITHUB_GIST_TOKEN: &'static str = "GITHUB_GIST_TOKEN";
+const GITHUB_GIST_API_ENDPOINT_ENV_NAME: &str = "GITHUB_GIST_API_ENDPOINT";
 const USER_AGENT: &'static str = "Pepito Gist";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Gist {
     #[serde(skip_serializing, skip_deserializing)]
     token: String,
+
+    #[serde(skip_serializing, skip_deserializing)]
+    api: String,
 
     public: bool,
     files: BTreeMap<String, GistFile>,
@@ -39,6 +43,7 @@ impl Gist {
             public: public,
             files: BTreeMap::new(),
             description: desc,
+            api: env::var(GITHUB_GIST_API_ENDPOINT_ENV_NAME).unwrap_or(GIST_API.to_owned())
         }
     }
 
@@ -70,7 +75,7 @@ impl Gist {
         let json_body = self.to_json();
 
         let mut res = client
-            .post(&GIST_API.to_string())
+            .post(&self.api)
             .bearer_auth(self.token.to_owned())
             .headers(self.construct_headers())
             .body(json_body)
@@ -80,7 +85,11 @@ impl Gist {
             res.read_to_string(&mut body)?;
             return Ok(body);
         }
-        Err(format_err!("API error"))
+        else {
+            let mut body = String::new();
+            res.read_to_string(&mut body)?;
+            Err(format_err!("API error: {}", body))
+        }
     }
 
     pub fn to_json(&self) -> String {
