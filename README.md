@@ -58,6 +58,11 @@ export GITHUB_TOKEN="blah blah blah"
 export GITHUB_GIST_TOKEN="blah blah blah"
 ```
 
+## Github Enterprise
+
+To use with Github Enterprise, set the env. var
+`GITHUB_GIST_API_ENDPOINT` to your private Gist API endpoint.
+
 ## License
 
 MIT.
