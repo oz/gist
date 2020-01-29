@@ -1,19 +1,17 @@
 use serde_json;
 
-use failure::Error;
-use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::Client;
-
+use crate::error::GistError;
 use crate::gist_file::GistFile;
 use std::collections::BTreeMap;
 use std::env;
-use std::io::Read;
+use ureq;
 
 const GIST_API: &'static str = "https://api.github.com/gists";
 const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
 const GITHUB_GIST_TOKEN: &'static str = "GITHUB_GIST_TOKEN";
 const GITHUB_GIST_API_ENDPOINT_ENV_NAME: &str = "GITHUB_GIST_API_ENDPOINT";
 const USER_AGENT: &'static str = "Pepito Gist";
+const CONTENT_TYPE: &'static str = "application/json";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Gist {
@@ -69,43 +67,28 @@ impl Gist {
         self.files.insert(name, gist);
     }
 
-    // Send to Github.
-    pub fn create(&mut self) -> Result<String, Error> {
-        let client = Client::new();
-        let json_body = self.to_json();
+    fn auth_header(&mut self) -> String {
+        format!("bearer {}", self.token)
+    }
 
-        let mut res = client
-            .post(&self.api)
-            .bearer_auth(self.token.to_owned())
-            .headers(self.construct_headers())
-            .body(json_body)
-            .send()?;
-        if res.status().is_success() {
-            let mut body = String::new();
-            res.read_to_string(&mut body)?;
-            return Ok(body);
+    // Send to Github.
+    pub fn create(&mut self) -> Result<String, GistError> {
+        let res = ureq::post(&self.api)
+            .set("Authorization", &self.auth_header())
+            .set("User-Agent", USER_AGENT)
+            .set("Content-Type", CONTENT_TYPE)
+            .send_string(&self.to_json());
+        if res.ok() {
+            let body = res.into_string().unwrap();
+            Ok(body)
         } else {
-            let mut body = String::new();
-            res.read_to_string(&mut body)?;
-            Err(format_err!("API error: {}", body))
+            let body = res.into_string().unwrap();
+            Err(GistError { message: body })
         }
     }
 
     pub fn to_json(&self) -> String {
         serde_json::to_string(&self).unwrap()
-    }
-
-    fn construct_headers(&self) -> HeaderMap {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            reqwest::header::USER_AGENT,
-            HeaderValue::from_static(USER_AGENT),
-        );
-        headers.insert(
-            reqwest::header::CONTENT_TYPE,
-            HeaderValue::from_static("application/json"),
-        );
-        headers
     }
 }
 
