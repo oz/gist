@@ -43,7 +43,7 @@ impl Gist {
             public: public,
             files: BTreeMap::new(),
             description: desc,
-            api: env::var(GITHUB_GIST_API_ENDPOINT_ENV_NAME).unwrap_or(GIST_API.to_owned())
+            api: env::var(GITHUB_GIST_API_ENDPOINT_ENV_NAME).unwrap_or(GIST_API.to_owned()),
         }
     }
 
@@ -84,8 +84,7 @@ impl Gist {
             let mut body = String::new();
             res.read_to_string(&mut body)?;
             return Ok(body);
-        }
-        else {
+        } else {
             let mut body = String::new();
             res.read_to_string(&mut body)?;
             Err(format_err!("API error: {}", body))

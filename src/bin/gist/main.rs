@@ -4,8 +4,8 @@ extern crate gist;
 use getopts::Options;
 
 use std::env;
-use std::process;
 use std::io::{self, Write};
+use std::process;
 
 use gist::gist::Gist;
 use gist::gist_file::GistFile;
