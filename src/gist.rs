@@ -73,21 +73,24 @@ impl Gist {
 
     // Send to Github.
     pub fn create(&mut self) -> Result<String> {
-        let res = ureq::post(&self.api)
+        let resp = ureq::post(&self.api)
             .set("Authorization", &self.auth_header())
             .set("User-Agent", USER_AGENT)
             .set("Content-Type", CONTENT_TYPE)
-            .send_string(&self.to_json());
-        if res.ok() {
-            Ok(res.into_string()?)
-        } else {
-            let body = res.into_string().unwrap();
-            Err(anyhow!("{}", body))
+            .send_json(self.to_json()?);
+        match resp {
+            Ok(response) => Ok(response.into_string()?),
+            Err(ureq::Error::Status(code, response)) => Err(anyhow!(
+                "Error posting gist: ({}) {}",
+                code,
+                response.status_text()
+            )),
+            Err(e) => Err(anyhow!("Error posting gist: {}", e.to_string())),
         }
     }
 
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(&self).unwrap()
+    pub fn to_json(&self) -> Result<serde_json::Value> {
+        Ok(serde_json::to_value(self)?)
     }
 }
 
@@ -126,11 +129,10 @@ mod tests {
         let mut public = Gist::new(true, None);
         public.add_file(fake_gist_file("file.txt", Some("public file contents")));
 
-        let public_json = public.to_json().to_string();
+        let public_json = public.to_json().unwrap().to_string();
         assert_eq!(
             public_json,
-            "{\"public\":true,\"files\":{\"file.txt\":{\"content\":\"public file \
-             contents\"}}}"
+            r#"{"files":{"file.txt":{"content":"public file contents"}},"public":true}"#
         );
     }
 
@@ -139,11 +141,10 @@ mod tests {
         let mut private = Gist::new(false, None);
         private.add_file(fake_gist_file("secret.txt", Some("private file contents")));
 
-        let private_json = private.to_json().to_string();
+        let private_json = private.to_json().unwrap().to_string();
         assert_eq!(
             private_json,
-            "{\"public\":false,\"files\":{\"secret.txt\":{\"content\":\"private file \
-             contents\"}}}"
+            r#"{"files":{"secret.txt":{"content":"private file contents"}},"public":false}"#
         );
     }
 
@@ -153,11 +154,10 @@ mod tests {
         let mut private = Gist::new(false, desc);
         private.add_file(fake_gist_file("secret.txt", Some("private file contents")));
 
-        let private_json = private.to_json().to_string();
+        let private_json = private.to_json().unwrap().to_string();
         assert_eq!(
             private_json,
-            "{\"public\":false,\"files\":{\"secret.txt\":{\"content\":\
-             \"private file contents\"}},\"description\":\"description\"}"
+            r#"{"description":"description","files":{"secret.txt":{"content":"private file contents"}},"public":false}"#
         );
     }
 }
