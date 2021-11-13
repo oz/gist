@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  GITHUB_GIST_TOKEN: "test"
 
 jobs:
   build:
