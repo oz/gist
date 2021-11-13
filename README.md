@@ -2,8 +2,6 @@
 
 A command-line tool for publishing gists, inspired by [icholy/gist][gogist].
 
-[![Build Status](https://travis-ci.org/LesPepitos/gist.svg?branch=master)](https://travis-ci.org/LesPepitos/gist)
-
 ## Usage
 
 Read a file from stdin:
