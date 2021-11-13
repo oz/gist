@@ -1,7 +1,7 @@
 use serde_json;
 
-use crate::error::GistError;
 use crate::gist_file::GistFile;
+use anyhow::Result;
 use std::collections::BTreeMap;
 use std::env;
 use ureq;
@@ -72,18 +72,17 @@ impl Gist {
     }
 
     // Send to Github.
-    pub fn create(&mut self) -> Result<String, GistError> {
+    pub fn create(&mut self) -> Result<String> {
         let res = ureq::post(&self.api)
             .set("Authorization", &self.auth_header())
             .set("User-Agent", USER_AGENT)
             .set("Content-Type", CONTENT_TYPE)
             .send_string(&self.to_json());
         if res.ok() {
-            let body = res.into_string().unwrap();
-            Ok(body)
+            Ok(res.into_string()?)
         } else {
             let body = res.into_string().unwrap();
-            Err(GistError { message: body })
+            Err(anyhow!("{}", body))
         }
     }
 
