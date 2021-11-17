@@ -4,25 +4,25 @@ A command-line tool for publishing gists, inspired by [icholy/gist][gogist].
 
 ## Usage
 
-Read a file from stdin:
+Publish a single file, read from stdin:
 
 ```sh
 cat notes.md | gist
 ```
 
-Set a file name:
+Set a file name with `-f`:
 
 ```sh
 cat error.log | gist -f "weird-bug.log"
 ```
 
-Make a public Gist:
+Make a public Gist with `-p`:
 
 ```sh
 cat file.sh | gist -p
 ```
 
-Multiple files?
+Make a single gist with multiple files, preserving their names:
 
 ```sh
 gist src/*.rs
@@ -37,6 +37,29 @@ echo stuff | gist | xclip
 # mac
 echo something | gist | pbcopy
 ```
+
+### In the next release...
+
+Show me a brief list of public gists:
+
+```sh
+gist -l
+```
+
+... or for a single user:
+
+```sh
+gist -l some_login
+```
+
+BTW, did you know that Github gists are also git repositories? You can
+get a local copy of a gist by passing its URL (this uses `git clone`
+behind the scenes):
+
+```sh
+gist https://gist.github.com/oz/123478097
+```
+
 
 ## Installation
 

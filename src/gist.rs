@@ -6,13 +6,24 @@ use std::collections::BTreeMap;
 use std::env;
 use ureq;
 
-const GIST_API: &'static str = "https://api.github.com/gists";
+const GIST_API: &'static str = "https://api.github.com";
 const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
 const GITHUB_GIST_TOKEN: &'static str = "GITHUB_GIST_TOKEN";
 const GITHUB_GIST_API_ENDPOINT_ENV_NAME: &str = "GITHUB_GIST_API_ENDPOINT";
-const USER_AGENT: &'static str = "Pepito Gist";
-const CONTENT_TYPE: &'static str = "application/json";
+const USER_AGENT: &'static str = "oz/gist";
+const CONTENT_TYPE: &'static str = "application/vnd.github.v3+json";
+const ACCEPT_CONTENT: &'static str = "application/json";
 
+// A Gist as returned by Github's v3 API.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApiGist {
+    pub html_url: String,
+    pub description: Option<String>,
+    pub created_at: String,
+    // ... and many more fields...
+}
+
+// A Gist as received by Github's v3 API.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Gist {
     #[serde(skip_serializing, skip_deserializing)]
@@ -67,14 +78,12 @@ impl Gist {
         self.files.insert(name, gist);
     }
 
-    fn auth_header(&mut self) -> String {
-        format!("bearer {}", self.token)
-    }
-
-    // Send to Github.
+    // Send a new Gist to Github.
     pub fn create(&mut self) -> Result<String> {
-        let resp = ureq::post(&self.api)
+        let url = self.api.clone() + "/gists";
+        let resp = ureq::post(&url)
             .set("Authorization", &self.auth_header())
+            .set("Accept", ACCEPT_CONTENT)
             .set("User-Agent", USER_AGENT)
             .set("Content-Type", CONTENT_TYPE)
             .send_json(self.to_json()?);
@@ -91,6 +100,40 @@ impl Gist {
 
     pub fn to_json(&self) -> Result<serde_json::Value> {
         Ok(serde_json::to_value(self)?)
+    }
+
+    // List the gists of a given user, or public gists when login is None.
+    pub fn list(&mut self, login: Option<String>) -> Result<Vec<ApiGist>> {
+        let url = self.gist_list_url(login);
+        let resp = ureq::get(&url)
+            .set("Authorization", &self.auth_header())
+            .set("User-Agent", USER_AGENT)
+            .set("Accept", ACCEPT_CONTENT)
+            .set("Content-Type", CONTENT_TYPE)
+            .query("per_page", "10")
+            .call();
+
+        match resp {
+            Err(ureq::Error::Status(code, response)) => {
+                Err(anyhow!("API error: ({}) {}", code, response.status_text()))
+            }
+            Err(e) => Err(anyhow!("error: {}", e.to_string())),
+            Ok(response) => {
+                let gl: Vec<ApiGist> = response.into_json()?;
+                Ok(gl)
+            }
+        }
+    }
+
+    fn auth_header(&mut self) -> String {
+        format!("bearer {}", self.token)
+    }
+
+    fn gist_list_url(&mut self, login: Option<String>) -> String {
+        match login {
+            Some(user) => self.api.clone() + "/users/" + &user + "/gists",
+            _ => self.api.clone() + "/gists/public",
+        }
     }
 }
 
