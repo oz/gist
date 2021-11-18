@@ -1,6 +1,6 @@
 extern crate serde_json;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct Response {
     pub html_url: String,
     pub description: Option<String>,

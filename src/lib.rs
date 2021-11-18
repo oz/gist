@@ -8,4 +8,5 @@ extern crate ureq;
 
 pub mod gist;
 pub mod gist_file;
+pub mod gist_repo;
 pub mod response;

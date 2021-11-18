@@ -9,11 +9,13 @@ use std::process;
 
 use gist::gist::Gist;
 use gist::gist_file::GistFile;
+use gist::gist_repo::GistRepo;
 use gist::response::decode;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 const DEFAULT_GIST_NAME: &'static str = "Untitled";
+const GIST_BASE_URL: &'static str = "https://gist.github.com/";
 const E_HELP: i32 = 1;
 const E_FATAL: i32 = 2;
 
@@ -101,8 +103,13 @@ fn main() {
             gist.add_file(g);
         }
     } else {
-        for file_param in params.free {
-            let mut g = GistFile::new(file_param);
+        for param in params.free {
+            if (&param).starts_with(GIST_BASE_URL) {
+                let url = GistRepo::git_https_url(param);
+                GistRepo::clone(&url);
+                break;
+            }
+            let mut g = GistFile::new(param);
             match g.read_file() {
                 Ok(_) => gist.add_file(g),
                 Err(e) => fatal(&e.to_string()),
