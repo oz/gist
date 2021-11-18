@@ -2,6 +2,7 @@ use serde_json;
 
 use crate::gist_file::GistFile;
 use anyhow::Result;
+use response::Response;
 use std::collections::BTreeMap;
 use std::env;
 use ureq;
@@ -13,15 +14,6 @@ const GITHUB_GIST_API_ENDPOINT_ENV_NAME: &str = "GITHUB_GIST_API_ENDPOINT";
 const USER_AGENT: &'static str = "oz/gist";
 const CONTENT_TYPE: &'static str = "application/vnd.github.v3+json";
 const ACCEPT_CONTENT: &'static str = "application/json";
-
-// A Gist as returned by Github's v3 API.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ApiGist {
-    pub html_url: String,
-    pub description: Option<String>,
-    pub created_at: String,
-    // ... and many more fields...
-}
 
 // A Gist as received by Github's v3 API.
 #[derive(Serialize, Deserialize, Debug)]
@@ -103,7 +95,7 @@ impl Gist {
     }
 
     // List the gists of a given user, or public gists when login is None.
-    pub fn list(&mut self, login: Option<String>) -> Result<Vec<ApiGist>> {
+    pub fn list(&mut self, login: Option<String>) -> Result<Vec<Response>> {
         let url = self.gist_list_url(login);
         let resp = ureq::get(&url)
             .set("Authorization", &self.auth_header())
@@ -119,7 +111,7 @@ impl Gist {
             }
             Err(e) => Err(anyhow!("error: {}", e.to_string())),
             Ok(response) => {
-                let gl: Vec<ApiGist> = response.into_json()?;
+                let gl: Vec<Response> = response.into_json()?;
                 Ok(gl)
             }
         }
