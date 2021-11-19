@@ -15,7 +15,6 @@ use gist::response::decode;
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 const DEFAULT_GIST_NAME: &'static str = "Untitled";
-const GIST_BASE_URL: &'static str = "https://gist.github.com/";
 const E_HELP: i32 = 1;
 const E_FATAL: i32 = 2;
 
@@ -83,7 +82,6 @@ fn main() {
     let params = parse_args(env::args().collect());
     let is_public = params.opt_present("p");
     let desc = params.opt_str("d");
-    let show_list = params.opt_present("l");
     let filename = match params.opt_str("f") {
         Some(name) => name,
         None => DEFAULT_GIST_NAME.to_string(),
@@ -91,7 +89,7 @@ fn main() {
     let mut gist = Gist::new(is_public, desc);
 
     // List gists?
-    if show_list {
+    if params.opt_present("l") {
         let login = params.opt_str("l");
         return list_gists(&mut gist, login);
     }
@@ -104,11 +102,12 @@ fn main() {
         }
     } else {
         for param in params.free {
-            if (&param).starts_with(GIST_BASE_URL) {
-                let url = GistRepo::git_https_url(param);
+            // Does that look like a gist URL?
+            if let Some(url) = GistRepo::find_url(&param) {
                 GistRepo::clone(&url);
                 break;
             }
+            // ... nope. Probably a file.
             let mut g = GistFile::new(param);
             match g.read_file() {
                 Ok(_) => gist.add_file(g),
@@ -117,6 +116,7 @@ fn main() {
         }
     }
 
+    // Create a Gist if we got any files from flags or params...
     if !gist.is_empty() {
         match gist.create() {
             Ok(response) => {

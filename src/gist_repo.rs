@@ -1,5 +1,6 @@
-use std::io;
 use std::process::Command;
+
+const BASE_URL: &'static str = "https://gist.github.com/";
 
 pub struct GistRepo {
     pub name: String,
@@ -16,14 +17,19 @@ impl GistRepo {
         ecode.success()
     }
 
-    pub fn git_https_url(url: String) -> String {
-        if (&url).ends_with(".git") {
-            return url;
+    // Examine val to find a git repository URL.
+    pub fn find_url(val: &str) -> Option<String> {
+        if !val.starts_with(BASE_URL) {
+            return None;
         }
-        let parts: Vec<&str> = url.split('/').collect();
+        if val.ends_with(".git") {
+            return Some(val.to_string());
+        }
+        let parts: Vec<&str> = val.split('/').collect();
+
         match parts.last() {
-            Some(gist_id) => format!("https://gist.github.com/{}.git", gist_id),
-            None => panic!("Can't find a repository here!"),
+            Some(gist_id) => Some(format!("https://gist.github.com/{}.git", gist_id)),
+            None => None,
         }
     }
 }
