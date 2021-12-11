@@ -1,5 +1,6 @@
 use serde_json;
 
+use crate::config::Config;
 use crate::gist_file::GistFile;
 use anyhow::Result;
 use response::Response;
@@ -36,7 +37,13 @@ impl Gist {
         let token: String;
         match Gist::get_token(vec![GITHUB_GIST_TOKEN, GITHUB_TOKEN]) {
             Some(t) => token = t,
-            None => panic!("Missing GITHUB_GIST_TOKEN or GITHUB_TOKEN environment variable."),
+            None => {
+                if let Some(config) = Config::read() {
+                    token = config.gist_token;
+                } else {
+                    panic!("Missing GITHUB_GIST_TOKEN or GITHUB_TOKEN environment variable.")
+                }
+            }
         }
 
         Gist {
