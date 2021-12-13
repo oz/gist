@@ -79,6 +79,14 @@ export GITHUB_TOKEN="blah blah blah"
 export GITHUB_GIST_TOKEN="blah blah blah"
 ```
 
+Or you can place it in the global configuration file (`~/.gist/config.json`):
+
+```json
+{
+  "gist_token": "blah blah blah"
+}
+```
+
 ## Github Enterprise
 
 To use with Github Enterprise, set the env. var
