@@ -38,8 +38,6 @@ echo stuff | gist | xclip
 echo something | gist | pbcopy
 ```
 
-### In the next release...
-
 Show me a brief list of public gists:
 
 ```sh
