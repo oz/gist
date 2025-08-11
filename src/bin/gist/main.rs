@@ -2,15 +2,8 @@ extern crate getopts;
 extern crate gist;
 
 use getopts::Options;
-
-use std::env;
-use std::io::{self, Write};
-use std::process;
-
-use gist::gist::Gist;
-use gist::gist_file::GistFile;
-use gist::gist_repo::GistRepo;
-use gist::response::decode;
+use gist::{gist::Gist, gist_file::GistFile, gist_repo::GistRepo, response::decode};
+use std::{env, process};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -30,7 +23,7 @@ fn print_version(program: &str) {
 }
 
 fn fatal(msg: &str) {
-    io::stderr().write(msg.as_bytes()).ok();
+    eprintln!("{}", msg);
     process::exit(E_FATAL);
 }
 
@@ -45,10 +38,10 @@ fn parse_args(args: Vec<String>) -> getopts::Matches {
 
     let params = opts.parse(&args[1..]).ok().expect("Unknown flag.");
     if params.opt_present("h") {
-        print_usage(&args[0].clone(), opts);
+        print_usage(&args[0], opts);
     }
     if params.opt_present("v") {
-        print_version(&args[0].clone());
+        print_version(&args[0]);
     }
 
     params
@@ -58,23 +51,21 @@ fn parse_args(args: Vec<String>) -> getopts::Matches {
 fn list_gists(gist: &mut Gist, login: Option<String>) {
     match gist.list(login.clone()) {
         Ok(list) => {
-            if login.is_some() {
-                println!("Latest Gists for {}:\n", login.unwrap());
+            if let Some(login) = login.as_ref() {
+                println!("Latest Gists for {}:\n", login);
             } else {
                 println!("Latest public Gists:\n");
             }
-            for item in list.iter() {
+            list.iter().for_each(|item| {
                 println!(
                     "- {} ({})\n  {}",
                     item.html_url,
                     item.created_at,
-                    item.description
-                        .as_ref()
-                        .unwrap_or(&("no desc".to_string()))
+                    item.description.as_ref().unwrap_or(&("no desc".into()))
                 );
-            }
+            });
         }
-        Err(msg) => println!("Failed to list gists: {:?}\n", msg),
+        Err(msg) => fatal(&msg.to_string()),
     };
 }
 
@@ -84,17 +75,16 @@ fn main() {
     let desc = params.opt_str("d");
     let filename = match params.opt_str("f") {
         Some(name) => name,
-        None => DEFAULT_GIST_NAME.to_string(),
+        None => DEFAULT_GIST_NAME.into(),
     };
     let mut gist = Gist::new(is_public, desc);
 
     // List gists?
     if params.opt_present("l") {
-        let login = params.opt_str("l");
-        return list_gists(&mut gist, login);
+        return list_gists(&mut gist, params.opt_str("l"));
     }
 
-    // Read from stdin, unless we receive a bunch of filenames.
+    // Read from stdin, unless we got some filenames params.
     if params.free.is_empty() {
         let mut g = GistFile::new(filename);
         if g.read_stdin().is_ok() {

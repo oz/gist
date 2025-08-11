@@ -77,23 +77,21 @@ impl Gist {
         self.files.insert(name, gist);
     }
 
-    // Send a new Gist to Github.
+    // Send a new Gist to GitHub.
     pub fn create(&mut self) -> Result<String> {
         let url = self.api.clone() + "/gists";
         let resp = ureq::post(&url)
-            .set("Authorization", &self.auth_header())
-            .set("Accept", ACCEPT_CONTENT)
-            .set("User-Agent", USER_AGENT)
-            .set("Content-Type", CONTENT_TYPE)
+            .header("Authorization", &self.auth_header())
+            .header("Accept", ACCEPT_CONTENT)
+            .header("User-Agent", USER_AGENT)
+            .header("Content-Type", CONTENT_TYPE)
             .send_json(self.to_json()?);
         match resp {
-            Ok(response) => Ok(response.into_string()?),
-            Err(ureq::Error::Status(code, response)) => Err(anyhow!(
-                "Error posting gist: ({}) {}",
-                code,
-                response.status_text()
-            )),
+            Err(ureq::Error::StatusCode(code)) => {
+                Err(anyhow!("HTTP error while posting gist: {}", code))
+            }
             Err(e) => Err(anyhow!("Error posting gist: {}", e.to_string())),
+            Ok(mut response) => Ok(response.body_mut().read_to_string().unwrap()),
         }
     }
 
@@ -105,21 +103,20 @@ impl Gist {
     pub fn list(&mut self, login: Option<String>) -> Result<Vec<Response>> {
         let url = self.gist_list_url(login);
         let resp = ureq::get(&url)
-            .set("Authorization", &self.auth_header())
-            .set("User-Agent", USER_AGENT)
-            .set("Accept", ACCEPT_CONTENT)
-            .set("Content-Type", CONTENT_TYPE)
+            .header("Authorization", &self.auth_header())
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", ACCEPT_CONTENT)
+            .header("Content-Type", CONTENT_TYPE)
             .query("per_page", "10")
             .call();
-
         match resp {
-            Err(ureq::Error::Status(code, response)) => {
-                Err(anyhow!("API error: ({}) {}", code, response.status_text()))
+            Err(ureq::Error::StatusCode(code)) => {
+                Err(anyhow!("HTTP error while listing gists: {}", code))
             }
-            Err(e) => Err(anyhow!("error: {}", e.to_string())),
-            Ok(response) => {
-                let gl: Vec<Response> = response.into_json()?;
-                Ok(gl)
+            Err(e) => Err(anyhow!("Error listing gists: {}", e.to_string())),
+            Ok(mut response) => {
+                let gist_list = response.body_mut().read_json::<Vec<Response>>()?;
+                Ok(gist_list)
             }
         }
     }
