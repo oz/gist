@@ -31,8 +31,8 @@ gist src/*.rs
 I want the Gist's URL copied to my clipboard, when it's done:
 
 ```sh
-# *nix / X.org
-echo stuff | gist | xclip
+# *nix / Wayland
+echo stuff | gist | wl-copy
 
 # mac
 echo something | gist | pbcopy
