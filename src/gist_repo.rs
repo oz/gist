@@ -1,6 +1,6 @@
 use std::process::Command;
 
-const BASE_URL: &'static str = "https://gist.github.com/";
+const BASE_URL: &str = "https://gist.github.com/";
 
 pub struct GistRepo {
     pub name: String,
@@ -10,7 +10,7 @@ impl GistRepo {
     pub fn clone(url: &str) -> bool {
         let mut child = Command::new("git")
             .arg("clone")
-            .arg(&url)
+            .arg(url)
             .spawn()
             .expect("Failed to run git");
         let ecode = child.wait().expect("Failed to clone repository");
@@ -27,10 +27,9 @@ impl GistRepo {
         }
         let parts: Vec<&str> = val.split('/').collect();
 
-        match parts.last() {
-            Some(gist_id) => Some(format!("https://gist.github.com/{}.git", gist_id)),
-            None => None,
-        }
+        parts
+            .last()
+            .map(|gist_id| format!("https://gist.github.com/{}.git", gist_id))
     }
 }
 

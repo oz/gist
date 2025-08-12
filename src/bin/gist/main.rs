@@ -5,9 +5,9 @@ use getopts::Options;
 use gist::{gist::Gist, gist_file::GistFile, gist_repo::GistRepo, response::decode};
 use std::{env, process};
 
-pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const DEFAULT_GIST_NAME: &'static str = "Untitled";
+const DEFAULT_GIST_NAME: &str = "Untitled";
 const E_HELP: i32 = 1;
 const E_FATAL: i32 = 2;
 
@@ -36,7 +36,7 @@ fn parse_args(args: Vec<String>) -> getopts::Matches {
     opts.optflag("h", "help", "print this");
     opts.optflag("v", "version", "show version");
 
-    let params = opts.parse(&args[1..]).ok().expect("Unknown flag.");
+    let params = opts.parse(&args[1..]).expect("Unknown flag.");
     if params.opt_present("h") {
         print_usage(&args[0], opts);
     }

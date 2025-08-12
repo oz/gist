@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GistFile {
     #[serde(skip_serializing, default = "GistFile::default_name")]
     pub name: String,
@@ -15,7 +15,7 @@ pub struct GistFile {
 impl GistFile {
     pub fn new(name: String) -> GistFile {
         GistFile {
-            name: name,
+            name,
             content: String::new(),
         }
     }
@@ -32,7 +32,7 @@ impl GistFile {
     // Read file to content buffer.
     pub fn read_file(&mut self) -> io::Result<usize> {
         let path = Path::new(&self.name);
-        let mut fh = File::open(&path)?;
+        let mut fh = File::open(path)?;
         fh.read_to_string(&mut self.content)
     }
 }

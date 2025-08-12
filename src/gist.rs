@@ -2,22 +2,22 @@ use serde_json;
 
 use crate::config::Config;
 use crate::gist_file::GistFile;
+use crate::response::Response;
 use anyhow::Result;
-use response::Response;
 use std::collections::BTreeMap;
 use std::env;
 use ureq;
 
-const GIST_API: &'static str = "https://api.github.com";
-const GITHUB_TOKEN: &'static str = "GITHUB_TOKEN";
-const GITHUB_GIST_TOKEN: &'static str = "GITHUB_GIST_TOKEN";
+const GIST_API: &str = "https://api.github.com";
+const GITHUB_TOKEN: &str = "GITHUB_TOKEN";
+const GITHUB_GIST_TOKEN: &str = "GITHUB_GIST_TOKEN";
 const GITHUB_GIST_API_ENDPOINT_ENV_NAME: &str = "GITHUB_GIST_API_ENDPOINT";
-const USER_AGENT: &'static str = "oz/gist";
-const CONTENT_TYPE: &'static str = "application/vnd.github.v3+json";
-const ACCEPT_CONTENT: &'static str = "application/json";
+const USER_AGENT: &str = "oz/gist";
+const CONTENT_TYPE: &str = "application/vnd.github.v3+json";
+const ACCEPT_CONTENT: &str = "application/json";
 
 // A Gist as received by Github's v3 API.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Gist {
     #[serde(skip_serializing, skip_deserializing)]
     token: String,
@@ -47,8 +47,8 @@ impl Gist {
         }
 
         Gist {
-            token: token,
-            public: public,
+            token,
+            public,
             files: BTreeMap::new(),
             description: desc,
             api: env::var(GITHUB_GIST_API_ENDPOINT_ENV_NAME).unwrap_or(GIST_API.to_owned()),
@@ -57,9 +57,8 @@ impl Gist {
 
     fn get_token(tokens: Vec<&str>) -> Option<String> {
         for token in tokens.iter() {
-            match env::var(token) {
-                Ok(t) => return Some(t),
-                Err(_) => {}
+            if let Ok(t) = env::var(token) {
+                return Some(t);
             }
         }
         None

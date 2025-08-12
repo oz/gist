@@ -1,6 +1,6 @@
 use std::fs;
 
-const CONFIG_FILE: &'static str = "config.json";
+const CONFIG_FILE: &str = "config.json";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {

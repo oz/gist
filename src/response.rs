@@ -8,5 +8,5 @@ pub struct Response {
 }
 
 pub fn decode(res: &str) -> Result<Response, serde_json::Error> {
-    serde_json::from_str(&res)
+    serde_json::from_str(res)
 }
