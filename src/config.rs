@@ -13,10 +13,9 @@ impl Config {
             home_dir
                 .join(format!(".{}", env!("CARGO_PKG_NAME")))
                 .join(CONFIG_FILE)
-        }) {
-            if let Ok(contents) = fs::read_to_string(config_path) {
-                return serde_json::from_str(&contents).ok();
-            }
+        }) && let Ok(contents) = fs::read_to_string(config_path)
+        {
+            return serde_json::from_str(&contents).ok();
         }
         None
     }
